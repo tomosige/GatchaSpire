@@ -1,0 +1,1 @@
+powershell.exe -File 'C:\Users\tomot\Scripts\Notify-Toast.ps1' -message "Character management refactoring - DraggableCharacter compilation error fixes completed!"

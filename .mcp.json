@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "unity-mcp": {
+      "command": "node",
+      "args": ["/home/tomosige/workspace/tomosige/UnityMcp/index.js"]
+    }
+  }
+}

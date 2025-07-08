@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(test:*)",
+      "Bash(node:*)",
+      "Bash(powershell.exe:*)",
+      "mcp__unity-mcp__unity_listClients",
+      "mcp__unity-mcp__unity_connectToProject",
+      "Bash(grep:*)",
+      "mcp__unity-mcp__unity_getActiveClient",
+      "mcp__unity-mcp__unity_setActiveClient",
+      "mcp__unity-mcp__console_clear",
+      "mcp__unity-mcp__console_getLogs",
+      "Bash(mkdir:*)"
+    ],
+    "deny": []
+  },
+  "enabledMcpjsonServers": [
+    "unity-mcp"
+  ]
+}
