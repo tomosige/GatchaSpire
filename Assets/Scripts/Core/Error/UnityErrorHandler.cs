@@ -20,9 +20,14 @@ namespace GatchaSpire.Core.Error
         [SerializeField] private bool handleUnityLogMessages = true;
         [SerializeField] private bool reportUncaughtExceptions = true;
 
+        [Header("ファイル保存")]
+        [SerializeField] private bool enableFileSaving = true;
+        [SerializeField] private bool autoSaveOnCritical = true;
+
         private List<SystemError> errorHistory;
         private Dictionary<ErrorCategory, Func<SystemError, bool>> recoveryActions;
         private ConcurrentQueue<SystemError> mainThreadErrorQueue;
+        private ErrorLogFileManager fileManager;
         
         private static UnityErrorHandler instance;
         
@@ -51,6 +56,12 @@ namespace GatchaSpire.Core.Error
             errorHistory = new List<SystemError>();
             recoveryActions = new Dictionary<ErrorCategory, Func<SystemError, bool>>();
             mainThreadErrorQueue = new ConcurrentQueue<SystemError>();
+
+            // ファイルマネージャーの初期化
+            if (enableFileSaving)
+            {
+                fileManager = new ErrorLogFileManager();
+            }
 
             if (handleUnityLogMessages)
             {
@@ -116,6 +127,19 @@ namespace GatchaSpire.Core.Error
             {
                 var color = ColorUtility.ToHtmlStringRGB(error.GetSeverityColor());
                 Debug.Log($"<color=#{color}>{error.GetFormattedMessage()}</color>");
+            }
+
+            // ファイル保存
+            if (enableFileSaving && fileManager != null)
+            {
+                if (autoSaveOnCritical && (error.Severity == ErrorSeverity.Critical || error.Severity == ErrorSeverity.Fatal))
+                {
+                    fileManager.SaveErrorToFile(error);
+                }
+                else if (error.Severity >= ErrorSeverity.Error)
+                {
+                    fileManager.SaveErrorToFile(error);
+                }
             }
 
             // 重要度による処理分岐
