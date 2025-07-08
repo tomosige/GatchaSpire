@@ -16,6 +16,7 @@ MonoBehaviour:
   showSystemHealth: 0
   pauseOnCriticalError: 1
   enableGodMode: 0
+  enableDebugCommands: 1
   skipAnimations: 0
   fastBattles: 0
   disableParticles: 0

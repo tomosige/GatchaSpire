@@ -22,8 +22,8 @@ namespace GatchaSpire.Core
         [SerializeField] private bool enableDebugLogs = true;
         [SerializeField] private bool showSystemHealthInGUI = false;
 
-        private Dictionary<string, IUnityGameSystem> unitySystems;
-        private List<IUnityGameSystem> updateSystems;
+        private Dictionary<string, IUnityGameSystem> unitySystems = new Dictionary<string, IUnityGameSystem>();
+        private List<IUnityGameSystem> updateSystems = new List<IUnityGameSystem>();
         private UnityErrorHandler errorHandler;
         private DependencyResolver dependencyResolver;
         private bool isInitialized;
@@ -40,6 +40,7 @@ namespace GatchaSpire.Core
 
         /// <summary>登録されているシステム数</summary>
         public int SystemCount => unitySystems?.Count ?? 0;
+
 
         private void Awake()
         {

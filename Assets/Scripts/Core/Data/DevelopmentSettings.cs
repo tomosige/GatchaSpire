@@ -15,6 +15,7 @@ namespace GatchaSpire.Core
         [SerializeField] private bool showSystemHealth = false;
         [SerializeField] private bool pauseOnCriticalError = true;
         [SerializeField] private bool enableGodMode = false;
+        [SerializeField] private bool enableDebugCommands = false;
 
         [Header("パフォーマンス設定")]
         [SerializeField] private bool skipAnimations = false;
@@ -44,6 +45,7 @@ namespace GatchaSpire.Core
         public bool ShowSystemHealth => showSystemHealth;
         public bool PauseOnCriticalError => pauseOnCriticalError;
         public bool EnableGodMode => enableGodMode;
+        public bool EnableDebugCommands => enableDebugCommands;
 
         public bool SkipAnimations => skipAnimations;
         public bool FastBattles => fastBattles;
