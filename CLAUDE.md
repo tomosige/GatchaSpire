@@ -10,17 +10,28 @@
 ## プロジェクト情報
 
 - **プロジェクト名**: GatchaSpire
-- **Unity バージョン**: 確認が必要（ProjectVersionファイルから取得）
+- **Unity バージョン**: 2021.3.22f1
 - **プラットフォーム**: PC（Windows）、モバイル対応予定
 - **プロジェクト構造**:
-  - **Assets/Scripts**: メインスクリプト（Character.cs等）
-  - **Assets/Art**: アート素材
-  - **Assets/Audio**: 音声素材
-  - **Assets/Data**: ゲームデータ
-  - **Assets/Prefabs**: プレハブ
+  - **Assets/Scripts**: メインスクリプト
+    - **Core**: 基盤システム（Character.cs, GoldManager.cs等）
+    - **Gameplay**: ゲームプレイ関連
+    - **UI**: UI関連
+    - **Editor**: エディタ拡張
+    - **Utils**: ユーティリティ
+  - **Assets/Resources**: データアセット（統一管理）
+    - **Settings**: 設定ファイル（DevelopmentSettings.asset）
+    - **Characters**: キャラクターデータ（レアリティ別）
+    - **Gacha**: ガチャシステムデータ
+    - **Audio**: 音声設定
+  - **Assets/Prefab**: プレハブ（システムコンポーネント）
   - **Assets/Scenes**: シーン
-  - **Assets/Fonts**: フォント
-  - **Assets/UI**: UI関連
+    - **Main**: メインシーン
+    - **Title**: タイトルシーン
+    - **Development**: 開発用シーン
+    - **Tests**: テスト用シーン
+  - **Assets/Fonts**: フォント素材
+  - **Assets/Tests**: テストアセット
 
 ## Unity開発ルール
 

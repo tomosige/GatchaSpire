@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8bfd3db260ddab45b0dc9575db889b3, type: 3}
+  m_Name: TestCharacterData
+  m_EditorClassIdentifier: 
+  characterName: TestWarrior
+  description: 
+  characterId: 1
+  rarity: 1
+  race: 1
+  characterClass: 1
+  element: 0
+  role: 2
+  baseLevel: 1
+  maxLevel: 100
+  expToNextLevel: 100
+  expGrowthRate: 1.2
+  baseStats:
+    baseHP: 100
+    baseMP: 50
+    baseAttack: 10
+    baseDefense: 8
+    baseSpeed: 12
+    baseMagic: 6
+    baseResistance: 5
+    baseLuck: 8
+  hpGrowthRate: 0.1
+  mpGrowthRate: 0.08
+  attackGrowthRate: 0.12
+  defenseGrowthRate: 0.1
+  speedGrowthRate: 0.05
+  magicGrowthRate: 0.08
+  resistanceGrowthRate: 0.06
+  luckGrowthRate: 0.03
+  characterIcon: {fileID: 0}
+  characterPortrait: {fileID: 0}
+  characterModel: {fileID: 0}
+  gachaCost: 100
+  upgradeCost: 50
+  sellPrice: 30
+  specialAbilities: []
+  passiveSkills: []

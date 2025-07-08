@@ -81,15 +81,8 @@ namespace GatchaSpire.Core.Systems
 
         private void CheckDevelopmentSettings()
         {
-            // まずResourcesから読み込み試行
-            var settings = Resources.Load<DevelopmentSettings>("DevelopmentSettings");
+            var settings = Resources.Load<DevelopmentSettings>("Settings\\DevelopmentSettings");
             
-            if (settings == null)
-            {
-                // 直接検索
-                settings = FindObjectOfType<DevelopmentSettings>();
-            }
-
             if (settings != null)
             {
                 Debug.Log("✓ DevelopmentSettings: 正常に読み込まれています");

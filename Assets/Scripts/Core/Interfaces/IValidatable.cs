@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace GatchaSpire.Core
@@ -13,11 +14,6 @@ namespace GatchaSpire.Core
         /// データの検証を実行
         /// </summary>
         ValidationResult Validate();
-
-        /// <summary>
-        /// Unity OnValidate相当の処理
-        /// </summary>
-        void OnValidate();
     }
 
     /// <summary>
@@ -61,9 +57,19 @@ namespace GatchaSpire.Core
         public IReadOnlyList<string> Errors => errors;
 
         /// <summary>
+        /// エラー有無
+        /// </summary>
+        public bool HasErrors => errors.Any(); 
+
+        /// <summary>
         /// 警告リストの読み取り専用アクセス
         /// </summary>
         public IReadOnlyList<string> Warnings => warnings;
+
+        /// <summary>
+        /// 警告有無
+        /// </summary>
+        public bool HasWarnings => warnings.Any();
 
         /// <summary>
         /// エラーを追加

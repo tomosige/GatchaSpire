@@ -133,3 +133,80 @@ Slay the Spireのレリックのように、より強い敵を倒した報酬と
 「次の敵は範囲攻撃が痛いから、配置を変えて前衛を厚くすべきか？」
 
 これらの葛藤と判断が、毎回のランで新鮮な挑戦と達成感を生み出し、プレイヤーの実力向上を促します。
+
+---
+
+## 現在の実装構造
+
+### プロジェクト構造（2025年7月8日現在）
+
+```
+Assets/
+├── Scripts/
+│   ├── Core/
+│   │   ├── Character/          # キャラクターシステム
+│   │   │   ├── Character.cs
+│   │   │   ├── CharacterData.cs
+│   │   │   ├── CharacterDatabase.cs
+│   │   │   ├── CharacterEnums.cs
+│   │   │   ├── CharacterStats.cs
+│   │   │   └── CharacterSystemTest.cs
+│   │   ├── Gold/               # ゴールドシステム
+│   │   │   ├── GoldManager.cs
+│   │   │   ├── GoldCalculator.cs
+│   │   │   ├── GoldTransactionHistory.cs
+│   │   │   └── GoldSystemTest.cs
+│   │   ├── Data/               # データ管理
+│   │   │   └── DevelopmentSettings.cs
+│   │   ├── Error/              # エラーハンドリング
+│   │   │   ├── UnityErrorHandler.cs
+│   │   │   ├── SystemError.cs
+│   │   │   ├── IErrorHandler.cs
+│   │   │   └── ErrorLogFileManager.cs
+│   │   ├── Systems/            # システム基盤
+│   │   │   ├── GameSystemBase.cs
+│   │   │   ├── DependencyResolver.cs
+│   │   │   ├── FoundationTestRunner.cs
+│   │   │   └── SimpleFoundationTest.cs
+│   │   ├── Unity/              # Unity統合
+│   │   │   └── UnityGameSystemCoordinator.cs
+│   │   └── Interfaces/         # インターフェース
+│   │       ├── IGameSystem.cs
+│   │       ├── IUnityGameSystem.cs
+│   │       ├── IValidatable.cs
+│   │       ├── IPersistentSystem.cs
+│   │       └── IResettableSystem.cs
+│   ├── Editor/                 # エディタ拡張
+│   │   ├── PlayerSettingsSetup.cs
+│   │   └── ScriptExecutionOrderSetup.cs
+│   ├── Gameplay/               # ゲームプレイ（未実装）
+│   ├── UI/                     # UI（未実装）
+│   └── Utils/                  # ユーティリティ（未実装）
+├── Resources/                  # データアセット統一管理
+│   ├── Settings/
+│   │   └── DevelopmentSettings.asset
+│   ├── Characters/
+│   │   ├── Common/
+│   │   ├── Rare/
+│   │   ├── Epic/
+│   │   ├── Legendary/
+│   │   └── Test/
+│   │       ├── TestKnight.asset
+│   │       └── testWarrior.asset
+│   ├── Gacha/                  # ガチャデータ（未実装）
+│   └── Audio/                  # 音声設定（未実装）
+├── Prefab/                     # システムプレハブ
+│   ├── UnityErrorHandler.prefab
+│   ├── UnityGameSystemCoordinator.prefab
+│   ├── GoldManager.prefab
+│   ├── CharacterDatabase.prefab
+│   └── 各種テストプレハブ
+├── Scenes/
+│   ├── Main/
+│   ├── Title.unity
+│   ├── Test.unity
+│   ├── Development/
+│   └── Tests/
+├── Fonts/                      # フォント素材
+└── Tests/                      # テストアセット
+```

@@ -20,25 +20,71 @@ Unity特化の基盤システムとエラーハンドリングの確立
 Assets/
 ├── Scripts/
 │   ├── Core/
-│   │   ├── Interfaces/       # 共通インターフェース
-│   │   ├── Systems/          # システム管理
-│   │   ├── Error/            # エラーハンドリング（新規）
-│   │   ├── Unity/            # Unity特化基盤（新規）
-│   │   └── Data/             # データクラス
-│   ├── Gameplay/             # ゲームロジック
-│   ├── UI/                   # UIシステム  
-│   ├── Utils/                # ユーティリティ
-│   └── Editor/               # エディタ拡張（新規）
-├── Data/                     # ScriptableObject
+│   │   ├── Character/          # キャラクターシステム
+│   │   │   ├── Character.cs
+│   │   │   ├── CharacterData.cs
+│   │   │   ├── CharacterDatabase.cs
+│   │   │   ├── CharacterEnums.cs
+│   │   │   ├── CharacterStats.cs
+│   │   │   └── CharacterSystemTest.cs
+│   │   ├── Gold/               # ゴールドシステム
+│   │   │   ├── GoldManager.cs
+│   │   │   ├── GoldCalculator.cs
+│   │   │   ├── GoldTransactionHistory.cs
+│   │   │   └── GoldSystemTest.cs
+│   │   ├── Data/               # データ管理
+│   │   │   └── DevelopmentSettings.cs
+│   │   ├── Error/              # エラーハンドリング
+│   │   │   ├── UnityErrorHandler.cs
+│   │   │   ├── SystemError.cs
+│   │   │   ├── IErrorHandler.cs
+│   │   │   └── ErrorLogFileManager.cs
+│   │   ├── Systems/            # システム基盤
+│   │   │   ├── GameSystemBase.cs
+│   │   │   ├── DependencyResolver.cs
+│   │   │   ├── FoundationTestRunner.cs
+│   │   │   └── SimpleFoundationTest.cs
+│   │   ├── Unity/              # Unity統合
+│   │   │   └── UnityGameSystemCoordinator.cs
+│   │   └── Interfaces/         # インターフェース
+│   │       ├── IGameSystem.cs
+│   │       ├── IUnityGameSystem.cs
+│   │       ├── IValidatable.cs
+│   │       ├── IPersistentSystem.cs
+│   │       └── IResettableSystem.cs
+│   ├── Editor/                 # エディタ拡張
+│   │   ├── PlayerSettingsSetup.cs
+│   │   └── ScriptExecutionOrderSetup.cs
+│   ├── Gameplay/               # ゲームプレイ（未実装）
+│   ├── UI/                     # UI（未実装）
+│   └── Utils/                  # ユーティリティ（未実装）
+├── Resources/                  # データアセット統一管理
+│   ├── Settings/
+│   │   └── DevelopmentSettings.asset
 │   ├── Characters/
-│   ├── Gacha/
-│   ├── Balance/
-│   └── Settings/             # 開発設定（新規）
+│   │   ├── Common/
+│   │   ├── Rare/
+│   │   ├── Epic/
+│   │   ├── Legendary/
+│   │   └── Test/
+│   │       ├── TestKnight.asset
+│   │       └── testWarrior.asset
+│   ├── Gacha/                  # ガチャデータ（未実装）
+│   └── Audio/                  # 音声設定（未実装）
+├── Prefab/                     # システムプレハブ
+│   ├── UnityErrorHandler.prefab
+│   ├── UnityGameSystemCoordinator.prefab
+│   ├── GoldManager.prefab
+│   ├── CharacterDatabase.prefab
+│   └── 各種テストプレハブ
 ├── Scenes/
-│   ├── Main/                 # メインシーン
-│   ├── Tests/                # テストシーン
-│   └── Development/          # 開発専用シーン（新規）
-└── Tests/                    # テストコード
+│   ├── Main/
+│   ├── Title.unity
+│   ├── Test.unity
+│   ├── Development/
+│   └── Tests/
+├── Fonts/                      # フォント素材
+└── Tests/                      # テストアセット
 ```
 
 #### Step 0.2: Unity特化インターフェース実装
