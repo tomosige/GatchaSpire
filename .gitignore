@@ -65,3 +65,22 @@ Thumbs.db.meta
 
 # macOS specific files
 .DS_Store
+
+# Project specific - Large font files and generated assets
+# Text Mesh Pro generated SDF assets (can be regenerated)
+Assets/Fonts/*SDF.asset
+Assets/Fonts/*SDF.asset.meta
+Assets/TextMesh Pro/Resources/Fonts & Materials/*SDF.asset
+Assets/TextMesh Pro/Resources/Fonts & Materials/*SDF.asset.meta
+
+# Multiple font weight files (keep only essential ones)
+Assets/Fonts/Noto_Sans_JP/static/
+Assets/Fonts/Noto_Sans_JP/static.meta
+Assets/Fonts/Noto_Sans_JP/NotoSansJP-VariableFont_wght.ttf
+
+# Keep meta files for directory structure
+!Assets/Fonts/Noto_Sans_JP/
+!Assets/Fonts/Noto_Sans_JP.meta
+
+# Claude Code settings (personal/local settings)
+.claude/settings.local.json

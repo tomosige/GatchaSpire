@@ -12,7 +12,8 @@
       "mcp__unity-mcp__unity_setActiveClient",
       "mcp__unity-mcp__console_clear",
       "mcp__unity-mcp__console_getLogs",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   },
