@@ -24,8 +24,21 @@ MonoBehaviour:
   guaranteedRareRate: 5
   guaranteedRareCount: 20
   maxUpgradeLevel: 10
-  upgrades: []
-  hasCeiling: 1
+  upgrades:
+  - level: 1
+    cost: 30
+    effectDescription: 
+    effects:
+    - type: 1
+      targetRarity: 1
+      value: 1
+    - type: 2
+      targetRarity: 1
+      value: 1
+    - type: 3
+      targetRarity: 1
+      value: 1
+  hasCeiling: 0
   ceilingCount: 100
   ceilingRarity: 4
   hasPickup: 0

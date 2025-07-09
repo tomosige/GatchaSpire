@@ -160,7 +160,7 @@ namespace GatchaSpire.Core.Gold
         /// <returns>消費が成功したかどうか</returns>
         public bool SpendGold(int amount, string reason = "")
         {
-            if (amount <= 0)
+            if (amount < 0)
             {
                 ReportWarning($"無効なゴールド消費量: {amount}");
                 OnTransactionFailed?.Invoke($"無効な消費量: {amount}");
@@ -358,6 +358,14 @@ namespace GatchaSpire.Core.Gold
                    $"- 自動保存: {enableAutosave}\n" +
                    $"- 取引履歴数: {_transactionHistory.TransactionCount}\n" +
                    $"- 計算機状態: {(_calculator != null ? "初期化済み" : "未初期化")}";
+        }
+
+        /// <summary>
+        /// システムの健康状態を取得
+        /// </summary>
+        public bool IsSystemHealthy()
+        {
+            return IsInitialized();
         }
     }
 
