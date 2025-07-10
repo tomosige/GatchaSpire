@@ -101,7 +101,8 @@ public bool DoSomething(int value)
     {
         if (value <= 0)
         {
-            errorReporter?.ReportWarning("ExampleManager", $"Invalid value: {value}");
+            // GameSystemBaseを継承していること
+            ReportWarning("ExampleManager", $"Invalid value: {value}");
             return false;
         }
         
@@ -110,7 +111,7 @@ public bool DoSomething(int value)
     }
     catch (Exception e)
     {
-        errorReporter?.ReportError("ExampleManager", "Failed to do something", e);
+        ReportError("ExampleManager", "Failed to do something", e);
         return false;
     }
 }

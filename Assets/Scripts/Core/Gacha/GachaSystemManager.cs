@@ -635,7 +635,7 @@ namespace GatchaSpire.Core.Gacha
         {
             // TODO: セーブシステムとの連携
             if (enableDebugLogs)
-                Debug.Log($"[{SystemName}] ガチャデータを保存しました");
+                ReportInfo("ガチャデータを保存しました");
         }
 
         /// <summary>
@@ -645,7 +645,7 @@ namespace GatchaSpire.Core.Gacha
         {
             // TODO: セーブシステムとの連携
             if (enableDebugLogs)
-                Debug.Log($"[{SystemName}] ガチャデータを読み込みました");
+                ReportInfo("ガチャデータを読み込みました");
         }
 
         /// <summary>

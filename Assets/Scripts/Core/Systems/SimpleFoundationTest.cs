@@ -135,7 +135,7 @@ namespace GatchaSpire.Core.Systems
             }
             else
             {
-                Debug.LogWarning("テストは実行時のみ動作します");
+                ReportWarning("テストは実行時のみ動作します");
             }
         }
     }

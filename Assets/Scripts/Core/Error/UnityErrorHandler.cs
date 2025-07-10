@@ -126,7 +126,24 @@ namespace GatchaSpire.Core.Error
             if (enableDebugLogs)
             {
                 var color = ColorUtility.ToHtmlStringRGB(error.GetSeverityColor());
-                Debug.Log($"<color=#{color}>{error.GetFormattedMessage()}</color>");
+                switch (error.Severity)
+                {
+                    case ErrorSeverity.Critical:
+                    case ErrorSeverity.Fatal:
+                    case ErrorSeverity.Error:
+                        Debug.LogError($"<color=#{color}>{error.GetFormattedMessage()}</color>");
+                        break;
+                    case ErrorSeverity.Warning:
+                        Debug.LogWarning($"<color=#{color}>{error.GetFormattedMessage()}</color>");
+                        break;
+                    case ErrorSeverity.Info:
+                        Debug.Log($"<color=#{color}>{error.GetFormattedMessage()}</color>");
+                        break;
+                    default:
+                        // 未知のSeverityの場合はErrorとして出力
+                        Debug.LogError($"<color=#{color}>[UNKNOWN SEVERITY] {error.GetFormattedMessage()}</color>");
+                        break;
+                }
             }
 
             // ファイル保存
@@ -232,11 +249,25 @@ namespace GatchaSpire.Core.Error
             HandleError(error);
         }
 
+        public void ReportWarning(string systemName, ErrorSeverity severity, ErrorCategory category,
+                               string message, Exception exception = null, bool isRecoverable = true)
+        {
+            var error = new SystemError(systemName, severity, category, message, exception, isRecoverable);
+            HandleError(error);
+        }
+
+        public void ReportInfo(string systemName, ErrorSeverity severity, ErrorCategory category,
+                               string message, Exception exception = null, bool isRecoverable = true)
+        {
+            var error = new SystemError(systemName, severity, category, message, exception, isRecoverable);
+            HandleError(error);
+        }
+
         public void ReportInfo(string systemName, string message) =>
-            ReportError(systemName, ErrorSeverity.Info, ErrorCategory.System, message);
+            ReportInfo(systemName, ErrorSeverity.Info, ErrorCategory.System, message);
 
         public void ReportWarning(string systemName, string message) =>
-            ReportError(systemName, ErrorSeverity.Warning, ErrorCategory.System, message);
+            ReportWarning(systemName, ErrorSeverity.Warning, ErrorCategory.System, message);
 
         public void ReportError(string systemName, string message, Exception exception = null) =>
             ReportError(systemName, ErrorSeverity.Error, ErrorCategory.System, message, exception);
