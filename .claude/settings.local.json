@@ -13,7 +13,9 @@
       "mcp__unity-mcp__console_clear",
       "mcp__unity-mcp__console_getLogs",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__unity-mcp__console_setFilter",
+      "mcp__unity-mcp__menu_execute"
     ],
     "deny": []
   },
