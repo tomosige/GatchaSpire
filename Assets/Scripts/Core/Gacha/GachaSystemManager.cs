@@ -11,6 +11,7 @@ namespace GatchaSpire.Core.Gacha
     /// <summary>
     /// ガチャシステム統合管理クラス
     /// </summary>
+    [DefaultExecutionOrder(-40)] // GoldManagerの後に実行
     public class GachaSystemManager : GameSystemBase, IPersistentSystem
     {
         [Header("ガチャ設定")]

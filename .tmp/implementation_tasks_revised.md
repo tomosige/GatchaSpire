@@ -199,16 +199,16 @@ Unity特化の基盤システムとエラーハンドリングを確立
 キャラクター操作と戦闘システムの構築
 
 ### Step 2.1: キャラクターインベントリ統合版
-- [ ] `CharacterInventoryManager` クラスの実装
-  - [ ] 統合キャラクター管理
-  - [ ] 売却機能
-  - [ ] 合成機能
-  - [ ] 経験値化機能
-  - [ ] 操作競合防止
-- [ ] 操作データクラスの実装
-  - [ ] `CharacterOperation` クラス
-  - [ ] `CharacterOperationResult` クラス
-  - [ ] `CharacterAvailabilityChecker` クラス
+- [x] `CharacterInventoryManager` クラスの実装
+  - [x] 統合キャラクター管理
+  - [x] 売却機能
+  - [x] 合成機能
+  - [x] 経験値化機能
+  - [x] 操作競合防止
+- [x] 操作データクラスの実装
+  - [x] `CharacterOperation` クラス
+  - [x] `CharacterOperationResult` クラス
+  - [x] `CharacterAvailabilityChecker` クラス
 - [ ] インベントリテスト
   - [ ] 各操作の単体テスト
   - [ ] 競合状態テスト

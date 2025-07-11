@@ -13,6 +13,7 @@ namespace GatchaSpire.Core.Character
     /// キャラクターインベントリの統合管理クラス
     /// 売却、合成、経験値化などの操作を統一的に管理
     /// </summary>
+    [DefaultExecutionOrder(-10)] // 他のマネージャーが登録された後に実行
     public class CharacterInventoryManager : GameSystemBase, IUnityGameSystem
     {
         [Header("システム設定")]

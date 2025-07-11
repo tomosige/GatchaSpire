@@ -97,24 +97,12 @@ Assets/
 ### 実装プロセス
 1. **各タスクの要件と設計は`.tmp/`フォルダで文書化済み**
 2. **詳細なタスクリストは`.tmp/implementation_tasks_revised.md`で管理**
-3. **実装ガイドラインは`.tmp/implementation_guidelines.md`で参照**
+3. **実装ガイドラインは類似する既存実装を参照**
 4. **データ設計は`.tmp/data_design.md`で統一管理**
 5. **段階的実装（Phase 0 → Phase 1 → Phase 2-5）**
 6. **各Step完了時に対応するチェックボックスを更新**
 7. **各機能の動作確認テストを必須とする**
 8. **変更をコミットしない。代わりに確認を求める**
-
-### ブランチ戦略
-- **main**: 安定版（Phase完了時のみマージ）
-- **feature/**: 機能開発ブランチ（例: `feature/gacha-system`）
-- **core-system**: 現在の開発ブランチ（Phase 1実装中）
-
-### PR作成時の形式
-- **タイトル**: 簡潔な要約
-- **主な変更点**: 変更内容、注意点等を記述
-- **テスト**: 実行したテストと結果
-- **関連タスク**: 関連タスクのリンクまたは番号
-- **その他**: 特別な注意事項
 
 ## Unity開発のプログラミングルール
 
@@ -124,6 +112,7 @@ Assets/
   - 参照するクラスの実際のプロパティ名・メソッド名を確認してから使用すること
   - 推測での実装は一切禁止。不明な点は該当ファイルを読んで確認すること
 - **ScriptableObject**を使用してゲームデータを管理する
+- **GameSystemBase**を継承してマネージャークラスを作成する
 - **IUnityGameSystem**インターフェースを実装してシステム管理を統一する
 - **UnityErrorHandler**を使用してエラーハンドリングを統一する
 - **DevelopmentSettings**を活用してデバッグ・チート機能を管理する
@@ -166,8 +155,6 @@ Assets/
 ### プロジェクト特有の注意事項
 
 - **GatchaSpire**は「ガチャ」をテーマにした一期一会のパーティ構築ローグライト
-- **現在の実装状況**: Phase 0完了、Phase 1進行中（Step 1.2まで完了）
-- **次の実装目標**: Step 1.3 ガチャシステム統合版の実装
 - **重要な設計方針**:
   - 完全リセット型ローグライト（永続的アップグレードなし）
   - リソース管理ジレンマ（ガチャ vs ガチャアップグレード）
@@ -181,8 +168,8 @@ Assets/
 ## .tmpフォルダドキュメント優先度
 
 ### 最高優先度（すぐに理解が必要）
+- **memories.md** - その日行った作業の備忘録
 - **implementation_tasks_revised.md** - 実装タスクリスト
-- **implementation_guidelines.md** - 実装ガイドライン
 - **data_design.md** - データ設計書
 - **technical_specifications.md** - 技術仕様書
 
@@ -214,6 +201,12 @@ Assets/
 - **user_stories.md** - ユーザーストーリー
 - **test_plan.md** - テスト計画
 - **performance_requirements.md** - パフォーマンス要件
+
+
+### 作業日誌
+/home/tomosige/workspace/tomosige/GatchaSpire/.tmp/memories.md
+作業の区切りごとに上のドキュメントに記録を付ける。
+起動したときにこの日誌をすべて読むこと。
 
 ---
 
