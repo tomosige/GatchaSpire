@@ -109,6 +109,9 @@ namespace GatchaSpire.Core.Character
         Resistance = 7, // 魔法防御
         Luck = 8,       // 運
         Critical = 9,   // クリティカル率
-        Accuracy = 10   // 命中率
+        Accuracy = 10,   // 命中率
+        AttackRange = 11, // 通常攻撃の射程
+        AttackSpeed = 12, // 通常攻撃速度
+
     }
 }

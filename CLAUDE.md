@@ -171,7 +171,7 @@ Assets/
 ### 作業日誌
 /home/tomosige/workspace/tomosige/GatchaSpire/.tmp/memories.md
 作業の区切りごとに上のドキュメントに記録を付ける。
-起動したときにこの日誌をすべて読むこと。
+起動したときにmemories.mdをすべて読むこと。
 
 ---
 

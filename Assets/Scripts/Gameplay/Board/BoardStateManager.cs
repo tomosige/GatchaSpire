@@ -11,6 +11,7 @@ namespace GatchaSpire.Gameplay.Board
     /// 7x8戦闘フィールドの状態管理クラス
     /// TFT方式UI表示対応（配置時7x4、戦闘時7x8）
     /// </summary>
+    [DefaultExecutionOrder(-50)] // UnityGameSystemCoordinatorの後に実行
     public class BoardStateManager : GameSystemBase
     {
         [Header("ボード設定")]
@@ -45,6 +46,14 @@ namespace GatchaSpire.Gameplay.Board
         public Character[,] Board => board;
         public List<Character> PlayerCharacters => new List<Character>(playerCharacters);
         public List<Character> EnemyCharacters => new List<Character>(enemyCharacters);
+
+        /// <summary>
+        /// Unity Awake - GameSystemBaseの自動登録処理を呼び出し
+        /// </summary>
+        private void Awake()
+        {
+            OnAwake();
+        }
 
         protected override void OnSystemInitialize()
         {

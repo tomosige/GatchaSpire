@@ -72,11 +72,11 @@ namespace GatchaSpire.Core.Systems
             
             if (isWarning)
             {
-                Debug.LogWarning(message);
+                ReportWarning(message);
             }
             else
             {
-                Debug.Log(message);
+                ReportInfo(message);
             }
         }
         
@@ -87,7 +87,7 @@ namespace GatchaSpire.Core.Systems
         {
             if (showDetailedLogs)
             {
-                Debug.Log($"[{TestClassName}] {message}");
+                ReportInfo($"[{TestClassName}] {message}");
             }
         }
         
@@ -101,11 +101,11 @@ namespace GatchaSpire.Core.Systems
             
             if (isSuccess)
             {
-                Debug.Log(message);
+                ReportInfo(message);
             }
             else
             {
-                Debug.LogError(message);
+                ReportError(message);
             }
         }
         
@@ -121,7 +121,7 @@ namespace GatchaSpire.Core.Systems
             }
             else
             {
-                Debug.LogWarning($"[{TestClassName}] テストは実行時にのみ動作します");
+                ReportWarning($"[{TestClassName}] テストは実行時にのみ動作します");
             }
         }
         
