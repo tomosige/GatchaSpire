@@ -3,21 +3,20 @@ using UnityEngine;
 using GatchaSpire.Core.Character;
 using GatchaSpire.Core.Gold;
 using GatchaSpire.Core.Systems;
+using System.Collections;
 
 namespace GatchaSpire.Core.Gacha
 {
     /// <summary>
     /// ガチャシステムのテストクラス
     /// </summary>
-    public class GachaSystemTest : GameSystemBase
+    public class GachaSystemTest : TestExclusiveBase
     {
         [Header("テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
-        [SerializeField] private bool showDetailedLogs = true;
         [SerializeField] private bool createTestGachaData = true;
         [SerializeField] private int testGoldAmount = 10000;
 
-        protected override string SystemName => "GachaSystemTest";
+        public override float MaxExecutionTimeSeconds => 180f; // 3分
 
         private List<string> testResults = new List<string>();
         private GachaSystemManager gachaManager;
@@ -25,29 +24,10 @@ namespace GatchaSpire.Core.Gacha
         private CharacterDatabase characterDatabase;
         private GachaSystemData generatedTestData;
 
-        private void Awake()
-        {
-            OnAwake();
-        }
-
-        protected override void OnSystemInitialize()
-        {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunAllTestsCoroutine());
-            }
-        }
-
         /// <summary>
         /// 全テストを実行
         /// </summary>
-        private System.Collections.IEnumerator RunAllTestsCoroutine()
+        public override IEnumerator RunAllTests()
         {
             yield return new WaitForSeconds(1f); // システム初期化を待つ
             
@@ -428,14 +408,6 @@ namespace GatchaSpire.Core.Gacha
             ReportInfo("システム統合テストが完了しました");
         }
 
-        /// <summary>
-        /// 全テストを手動実行
-        /// </summary>
-        [System.Diagnostics.Conditional("UNITY_EDITOR")]
-        public void RunAllTests()
-        {
-            StartCoroutine(RunAllTestsCoroutine());
-        }
 
         /// <summary>
         /// テスト用ガチャデータを生成

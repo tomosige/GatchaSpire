@@ -83,7 +83,7 @@ Assets/
 
 ### ゲームコンセプト
 - **ジャンル**: 一期一会のパーティ構築ローグライト
-- **コアゲームプレイ**: Auto-chess風の5x5グリッドでのパーティ構築
+- **コアゲームプレイ**: Auto-chess風の7x8戦闘フィールド（自軍7x4配置エリア）でのパーティ構築
 - **リソース管理**: ゴールドをガチャかガチャアップグレードに投資するジレンマ
 - **リセット方針**: 完全リセット型ローグライト（永続的アップグレードなし）
 - **オフライン専用**: ネットワーク機能なし
@@ -106,6 +106,7 @@ Assets/
 
 ## Unity開発のプログラミングルール
 
+- 絵文字は使用しない
 - 絶対に必要でない限り、値をハードコーディングしない
 - **コード実装前の確認ルール**：
   - 継承するクラス/インターフェースの全メンバーを確認し、必要なメソッド・プロパティを過不足なく実装すること
@@ -158,7 +159,7 @@ Assets/
 - **重要な設計方針**:
   - 完全リセット型ローグライト（永続的アップグレードなし）
   - リソース管理ジレンマ（ガチャ vs ガチャアップグレード）
-  - 5x5グリッドでのAuto-chess風パーティ構築
+  - 7x8戦闘フィールド（自軍7x4配置エリア）でのAuto-chess風パーティ構築
   - オフライン専用ゲーム
 - **パフォーマンス制約**: 2GB RAM端末対応、60fps維持
 - **エラーハンドリング**: UnityErrorHandlerによる統一的エラー管理
@@ -174,33 +175,11 @@ Assets/
 - **technical_specifications.md** - 技術仕様書
 
 ### 高優先度（実装時に参照が必要）
+- **design/detailed_skill_system_specification.md** - スキルシステム詳細仕様
+- **design/detailed_battle_system_specification.md** - バトルシステム詳細仕様
 - **design/new_design_gacha_system.md** - ガチャシステム設計
 - **design/new_design_character_system.md** - キャラクターシステム設計
 - **design/new_design_gold_system.md** - ゴールドシステム設計
-- **implementation_plan_revised.md** - 実装計画（修正版）
-
-### 中優先度（設計参考用）
-- **design/overall_design.md** - 全体設計
-- **design/revised_design_battle_system.md** - バトルシステム設計
-- **design/revised_design_synergy_system.md** - シナジーシステム設計
-- **design/revised_design_board_system.md** - ボードシステム設計
-- **design/revised_design_inventory_system.md** - インベントリシステム設計
-- **design/revised_design_ui_system.md** - UIシステム設計
-- **design/revised_design_skill_system.md** - スキルシステム設計
-- **design/revised_design_save_system.md** - セーブシステム設計
-- **design/revised_design_error_handling.md** - エラーハンドリング設計
-- **design/revised_design_development_support.md** - 開発支援設計
-- **design/revised_design_unity_integration.md** - Unity統合設計
-- **project_structure.md** - プロジェクト構造
-- **feature_specifications.md** - 機能仕様書
-- **game_design.md** - ゲーム設計書
-- **system_architecture.md** - システムアーキテクチャ
-- **coding_standards.md** - コーディング規約
-
-### 低優先度（背景理解用）
-- **user_stories.md** - ユーザーストーリー
-- **test_plan.md** - テスト計画
-- **performance_requirements.md** - パフォーマンス要件
 
 
 ### 作業日誌

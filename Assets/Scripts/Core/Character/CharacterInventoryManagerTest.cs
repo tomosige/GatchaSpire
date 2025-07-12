@@ -10,19 +10,14 @@ namespace GatchaSpire.Core.Character
     /// <summary>
     /// CharacterInventoryManager のテストクラス
     /// </summary>
-    public class CharacterInventoryManagerTest : GameSystemBase
+    [DefaultExecutionOrder(100)] // 統合テストの後に実行
+    public class CharacterInventoryManagerTest : TestExclusiveBase, IUnityResettable
     {
-        [Header("テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
-        [SerializeField] private bool showDetailedLogs = true;
+        [Header("テストデータ設定")]
         [SerializeField] private bool createTestData = true;
         [SerializeField] private bool cleanupAfterTests = true;
-
-        [Header("テストデータ設定")]
         [SerializeField] private int testCharacterCount = 10;
         [SerializeField] private int testGoldAmount = 10000;
-
-        protected override string SystemName => "CharacterInventoryManagerTest";
 
         private List<string> testResults = new List<string>();
         private CharacterInventoryManager inventoryManager;
@@ -30,29 +25,10 @@ namespace GatchaSpire.Core.Character
         private CharacterDatabase characterDatabase;
         private List<Character> testCharacters = new List<Character>();
 
-        private void Awake()
-        {
-            OnAwake();
-        }
-
-        protected override void OnSystemInitialize()
-        {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunAllTests());
-            }
-        }
-
         /// <summary>
         /// 全てのテストを実行
         /// </summary>
-        public IEnumerator RunAllTests()
+        public override IEnumerator RunAllTests()
         {
             ReportInfo("CharacterInventoryManager テストを開始します");
             testResults.Clear();
@@ -139,6 +115,11 @@ namespace GatchaSpire.Core.Character
         private IEnumerator CreateTestData()
         {
             testCharacters.Clear();
+
+            // インベントリを完全クリア（前回のテスト結果をクリア）
+            ReportInfo($"リセット前のインベントリ数: {inventoryManager.OwnedCharacterCount}");
+            inventoryManager.ResetSystem();
+            ReportInfo($"リセット後のインベントリ数: {inventoryManager.OwnedCharacterCount}");
 
             // 初期ゴールドを設定
             goldManager.SetGold(testGoldAmount);
@@ -698,21 +679,5 @@ namespace GatchaSpire.Core.Character
             }
         }
 
-        /// <summary>
-        /// エディタ専用テスト実行メニュー
-        /// </summary>
-        [System.Diagnostics.Conditional("UNITY_EDITOR")]
-        [UnityEngine.ContextMenu("テスト実行")]
-        public void RunTestsFromEditor()
-        {
-            if (Application.isPlaying)
-            {
-                StartCoroutine(RunAllTests());
-            }
-            else
-            {
-                ReportWarning("テストは実行時にのみ実行できます");
-            }
-        }
     }
 }

@@ -22,8 +22,7 @@
 
 ### 1.4 フィールド
 - **camelCase**を使用
-- プライベートフィールドはアンダースコア接頭辞を使用する場合あり
-- 例: `currentLevel`, `_currentGold`, `isInitialized`
+- 例: `currentLevel`, `currentGold`, `isInitialized`
 
 ### 1.5 定数
 - **UPPER_SNAKE_CASE**を使用

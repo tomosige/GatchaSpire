@@ -8,27 +8,15 @@ namespace GatchaSpire.Core.Systems
     /// <summary>
     /// 簡潔な基盤システムテスト
     /// </summary>
-    public class SimpleFoundationTest : GameSystemBase
+    public class SimpleFoundationTest : TestExclusiveBase
     {
-        [Header("テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
+        public override float MaxExecutionTimeSeconds => 60f; // 1分
 
-        protected override string SystemName => "SimpleFoundationTest";
+        private List<string> testResults = new List<string>();
 
-        private List<string> testResults;
-
-        protected override void OnSystemInitialize()
+        public override IEnumerator RunAllTests()
         {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunBasicTests());
-            }
+            yield return StartCoroutine(RunBasicTests());
         }
 
         public IEnumerator RunBasicTests()
@@ -126,17 +114,5 @@ namespace GatchaSpire.Core.Systems
             }
         }
 
-        [ContextMenu("Run Tests")]
-        public void RunTestsManually()
-        {
-            if (Application.isPlaying)
-            {
-                StartCoroutine(RunBasicTests());
-            }
-            else
-            {
-                ReportWarning("テストは実行時のみ動作します");
-            }
-        }
     }
 }

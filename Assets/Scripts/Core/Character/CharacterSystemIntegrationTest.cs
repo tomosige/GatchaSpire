@@ -11,20 +11,17 @@ namespace GatchaSpire.Core.Character
     /// キャラクターシステムと他システムの統合テストクラス
     /// CharacterInventoryManager、GoldManager、GachaSystemManager の連携をテスト
     /// </summary>
-    public class CharacterSystemIntegrationTest : GameSystemBase
+    [DefaultExecutionOrder(50)] // 単体テストの前に実行
+    public class CharacterSystemIntegrationTest : TestExclusiveBase
     {
-        [Header("統合テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
-        [SerializeField] private bool showDetailedLogs = true;
+        [Header("テストシナリオ設定")]
         [SerializeField] private bool resetSystemsBeforeTest = true;
         [SerializeField] private bool cleanupAfterTests = true;
-
-        [Header("テストシナリオ設定")]
         [SerializeField] private int initialGoldAmount = 50000;
         [SerializeField] private int gachaTestCount = 10;
         [SerializeField] private int integrationTestLoops = 3;
 
-        protected override string SystemName => "CharacterSystemIntegrationTest";
+        public override float MaxExecutionTimeSeconds => 180f; // 3分
 
         private List<string> testResults = new List<string>();
         private CharacterInventoryManager inventoryManager;
@@ -32,29 +29,10 @@ namespace GatchaSpire.Core.Character
         private CharacterDatabase characterDatabase;
         private List<Character> testCharacters = new List<Character>();
 
-        private void Awake()
-        {
-            OnAwake();
-        }
-
-        protected override void OnSystemInitialize()
-        {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunIntegrationTests());
-            }
-        }
-
         /// <summary>
         /// 統合テストを実行
         /// </summary>
-        public IEnumerator RunIntegrationTests()
+        public override IEnumerator RunAllTests()
         {
             ReportInfo("システム統合テストを開始します");
             testResults.Clear();
@@ -168,16 +146,27 @@ namespace GatchaSpire.Core.Character
             var allCharacterData = characterDatabase.AllCharacters;
             if (allCharacterData.Any())
             {
+                ReportInfo($"利用可能キャラクターデータ数: {allCharacterData.Count}");
+                ReportInfo($"テスト対象数: {gachaTestCount}");
+                ReportInfo($"初期インベントリ数: {initialCharacterCount}");
+                
                 var successCount = 0;
-                for (int i = 0; i < gachaTestCount && i < allCharacterData.Count; i++)
+                for (int i = 0; i < gachaTestCount; i++)
                 {
                     var characterData = allCharacterData[i % allCharacterData.Count];
                     var newCharacter = new Character(characterData, 1);
+                    
+                    ReportInfo($"キャラクター追加試行 {i + 1}: {characterData.CharacterName} (ID: {newCharacter.InstanceId})");
                     
                     if (inventoryManager.AddCharacter(newCharacter))
                     {
                         testCharacters.Add(newCharacter);
                         successCount++;
+                        ReportInfo($"キャラクター追加成功: {characterData.CharacterName}");
+                    }
+                    else
+                    {
+                        ReportWarning($"キャラクター追加失敗: {characterData.CharacterName}");
                     }
                 }
 
@@ -494,7 +483,9 @@ namespace GatchaSpire.Core.Character
 
             if (inventoryManager != null)
             {
+                ReportInfo($"クリーンアップ前のインベントリ数: {inventoryManager.OwnedCharacterCount}");
                 inventoryManager.ResetSystem();
+                ReportInfo($"クリーンアップ後のインベントリ数: {inventoryManager.OwnedCharacterCount}");
             }
 
             if (goldManager != null)
@@ -525,7 +516,7 @@ namespace GatchaSpire.Core.Character
                         break;
                     case "FAIL":
                         // 失敗テストは特別なフォーマットでUnityConsoleに直接出力
-                        Debug.LogError($"🔥 INTEGRATION TEST FAILURE 🔥 [{SystemName}] {message}");
+                        Debug.LogError($"INTEGRATION TEST FAILURE [{SystemName}] {message}");
                         ReportError(result);
                         break;
                     case "WARN":
@@ -575,7 +566,7 @@ namespace GatchaSpire.Core.Character
         {
             if (Application.isPlaying)
             {
-                StartCoroutine(RunIntegrationTests());
+                StartCoroutine(RunAllTests());
             }
             else
             {

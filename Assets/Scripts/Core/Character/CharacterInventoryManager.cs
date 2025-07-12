@@ -50,8 +50,8 @@ namespace GatchaSpire.Core.Character
         public static CharacterInventoryManager Instance => instance;
 
         // IUnityGameSystem 実装
-        public bool RequiresUpdate => pendingOperations.Count > 0 || activeOperations.Count > 0;
-        public int ExecutionOrder => 100;
+        public override bool RequiresUpdate => pendingOperations.Count > 0 || activeOperations.Count > 0;
+        public override int ExecutionOrder => 100;
         public bool PersistAcrossScenes => persistAcrossScenes;
         public bool RequiresMainThread => true;
 
@@ -70,7 +70,7 @@ namespace GatchaSpire.Core.Character
 
         #region Unity Lifecycle
 
-        public void OnAwake()
+        public override void OnAwake()
         {
             if (instance == null)
             {
@@ -89,13 +89,13 @@ namespace GatchaSpire.Core.Character
             InitializeCollections();
         }
 
-        public void OnStart()
+        public override void OnStart()
         {
             InitializeDependencies();
             LoadInventoryData();
         }
 
-        public void OnDestroy()
+        public override void OnDestroy()
         {
             if (instance == this)
             {
@@ -124,7 +124,7 @@ namespace GatchaSpire.Core.Character
             }
         }
 
-        public void ResetSystem()
+        public override void ResetSystem()
         {
             try
             {
@@ -148,7 +148,7 @@ namespace GatchaSpire.Core.Character
             }
         }
 
-        public void Update()
+        public override void Update()
         {
             if (!IsInitialized())
             {
@@ -159,7 +159,7 @@ namespace GatchaSpire.Core.Character
             CleanupExpiredOperations();
         }
 
-        public void Shutdown()
+        public override void Shutdown()
         {
             try
             {
@@ -178,7 +178,7 @@ namespace GatchaSpire.Core.Character
             goldManager != null && 
             characterDatabase != null;
 
-        public SystemPriority Priority => SystemPriority.Medium;
+        public override SystemPriority Priority => SystemPriority.Medium;
 
         public SystemPriority GetInitializationPriority() => SystemPriority.Medium;
 
