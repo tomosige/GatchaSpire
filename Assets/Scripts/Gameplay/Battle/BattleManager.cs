@@ -198,6 +198,7 @@ namespace GatchaSpire.Gameplay.Battle
 
         /// <summary>
         /// 戦闘を強制終了
+        /// デバッグ用
         /// </summary>
         public void ForceEndBattle()
         {
@@ -209,7 +210,7 @@ namespace GatchaSpire.Gameplay.Battle
             try
             {
                 SetBattleState(BattleState.Ending);
-                
+
                 // 引き分け結果を作成
                 pendingBattleResult = new BattleResult
                 {

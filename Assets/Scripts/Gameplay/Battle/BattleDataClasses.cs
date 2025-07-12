@@ -52,11 +52,6 @@ namespace GatchaSpire.Gameplay.Battle
         /// <returns>妥当性</returns>
         public bool IsValid()
         {
-            if (EnemyCharacters.Count == 0)
-            {
-                return false;
-            }
-
             if (EnemyPositions.Count != EnemyCharacters.Count)
             {
                 return false;
