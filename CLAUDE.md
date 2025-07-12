@@ -106,21 +106,7 @@ Assets/
 
 ## Unity開発のプログラミングルール
 
-- 絵文字は使用しない
-- 絶対に必要でない限り、値をハードコーディングしない
-- **コード実装前の確認ルール**：
-  - 継承するクラス/インターフェースの全メンバーを確認し、必要なメソッド・プロパティを過不足なく実装すること
-  - 参照するクラスの実際のプロパティ名・メソッド名を確認してから使用すること
-  - 推測での実装は一切禁止。不明な点は該当ファイルを読んで確認すること
-- **ScriptableObject**を使用してゲームデータを管理する
-- **GameSystemBase**を継承してマネージャークラスを作成する
-- **IUnityGameSystem**インターフェースを実装してシステム管理を統一する
-- **UnityErrorHandler**を使用してエラーハンドリングを統一する
-- **DevelopmentSettings**を活用してデバッグ・チート機能を管理する
-- **nullチェック**を適切に行い、NullReferenceExceptionを防ぐ
-- **コルーチン**の適切な停止処理を実装する
-- **イベントシステム**を活用してコンポーネント間の結合を緩める
-- **ValidationResult**を使用してScriptableObjectの検証を統一する
+- /home/tomosige/workspace/tomosige/GatchaSpire/.tmp/coding_standards.md を遵守すること
 - その他はMicrosoftのC#コーディングガイドラインに準拠する
 
 ### オブジェクト初期化規約

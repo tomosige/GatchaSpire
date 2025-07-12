@@ -272,6 +272,23 @@ private static GoldManager _instance;
 public static GoldManager Instance => _instance;
 ```
 
+## 13. その他の規約
+
+
+### 13.1 if文にはブロック文が必須
+```csharp
+// NG
+if(!isInitialized) return;
+if(!isInitialized) 
+    return;
+
+// OK
+if(!isInitialized) 
+{
+    return;
+}
+```
+
 ---
 
 このコーディング規約は、既存のコードベースとの整合性を保つために策定されています。新しい機能の追加や既存コードの修正時は、これらの規約に従って実装してください。
