@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using GatchaSpire.Core.Systems;
 using GatchaSpire.Core.Character;
 using System.Linq;
+using System;
 
 namespace GatchaSpire.Gameplay.Skills
 {
@@ -119,9 +120,11 @@ namespace GatchaSpire.Gameplay.Skills
             // Phase 2: 段階的実装（続き）
             yield return StartCoroutine(TestCharacterInventoryIntegration());
             
+            // Phase 2: 段階的実装（スキル効果プロパティ）
+            yield return StartCoroutine(TestSkillEffectProperties());
+            
             // 未実装部分（コメントアウト）
             // yield return StartCoroutine(TestBasicSkillEffects());
-            // yield return StartCoroutine(TestSkillEffectProperties());
 
             LogTestResult("=== 実装済みテスト完了 ===");
         }
@@ -776,35 +779,221 @@ namespace GatchaSpire.Gameplay.Skills
 
         /// <summary>
         /// スキル効果詳細プロパティテスト
+        /// 仕様書3.1-3.2に基づくSkillEffectシステムのプロパティ検証
         /// </summary>
         private IEnumerator TestSkillEffectProperties()
         {
             LogDebug("スキル効果詳細プロパティテスト開始");
 
-            // 期待値: 基本プロパティの存在確認
-            AssertTest(false, "BaseValueプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "ScalingRatioプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "ScalingSourceプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "TargetTypeプロパティの確認（未実装のため失敗予定）");
+            // === 基本Enumの存在確認 ===
+            
+            // ScalingAttribute enum確認
+            var scalingTest = ScalingAttribute.Attack;
+            AssertTest(scalingTest == ScalingAttribute.Attack, "ScalingAttribute enumの存在確認");
+            AssertTest(Enum.IsDefined(typeof(ScalingAttribute), ScalingAttribute.Level), "ScalingAttribute.Levelの定義確認");
+            AssertTest(Enum.IsDefined(typeof(ScalingAttribute), ScalingAttribute.MaxHP), "ScalingAttribute.MaxHPの定義確認");
 
-            // 期待値: 継続効果プロパティの確認
-            AssertTest(false, "Durationプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "IsPermanentプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "TickIntervalプロパティの確認（未実装のため失敗予定）");
+            // StackBehavior enum確認
+            var stackTest = StackBehavior.Refresh;
+            AssertTest(stackTest == StackBehavior.Refresh, "StackBehavior enumの存在確認");
+            AssertTest(Enum.IsDefined(typeof(StackBehavior), StackBehavior.Intensify), "StackBehavior.Intensifyの定義確認");
 
-            // 期待値: 確率・条件プロパティの確認
-            AssertTest(false, "SuccessChanceプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "TriggerConditionsプロパティの確認（未実装のため失敗予定）");
+            // SkillTargetType enum確認
+            var targetTest = SkillTargetType.SingleEnemy;
+            AssertTest(targetTest == SkillTargetType.SingleEnemy, "SkillTargetType enumの存在確認");
+            AssertTest(Enum.IsDefined(typeof(SkillTargetType), SkillTargetType.AllAllies), "SkillTargetType.AllAlliesの定義確認");
 
-            // 期待値: スタック・重複プロパティの確認
-            AssertTest(false, "CanStackプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "MaxStacksプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "StackTypeプロパティの確認（未実装のため失敗予定）");
+            // DamageType enum確認
+            var damageTest = DamageType.Physical;
+            AssertTest(damageTest == DamageType.Physical, "DamageType enumの存在確認");
+            AssertTest(Enum.IsDefined(typeof(DamageType), DamageType.Fire), "DamageType.Fireの定義確認");
 
-            // 期待値: 視覚効果プロパティの確認
-            AssertTest(false, "EffectAnimationIdプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "EffectColorプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "ShowFloatingTextプロパティの確認（未実装のため失敗予定）");
+            yield return new WaitForSeconds(0.1f);
+
+            // === DamageEffect クラステスト ===
+            
+            LogDebug("DamageEffect プロパティテスト開始");
+            
+            var damageEffect = new DamageEffect("テストダメージ", "テスト用のダメージ効果", 100f, DamageType.Magical);
+            AssertTest(damageEffect != null, "DamageEffectクラスの作成確認");
+            
+            if (damageEffect != null)
+            {
+                // 基本プロパティ確認
+                AssertTestDetailed(damageEffect.EffectName == "テストダメージ", "DamageEffect.EffectNameプロパティ", damageEffect.EffectName, "テストダメージ");
+                AssertTestDetailed(damageEffect.BaseValue == 100f, "DamageEffect.BaseValueプロパティ", damageEffect.BaseValue, 100f);
+                AssertTestDetailed(damageEffect.EffectType == SkillEffectType.Damage, "DamageEffect.EffectTypeプロパティ", damageEffect.EffectType, SkillEffectType.Damage);
+                AssertTestDetailed(damageEffect.DamageType == DamageType.Magical, "DamageEffect.DamageTypeプロパティ", damageEffect.DamageType, DamageType.Magical);
+                
+                // 対象・範囲プロパティ確認
+                AssertTestDetailed(damageEffect.TargetType == SkillTargetType.SingleEnemy, "DamageEffect.TargetTypeプロパティ", damageEffect.TargetType, SkillTargetType.SingleEnemy);
+                AssertTestDetailed(damageEffect.MaxTargets == 1, "DamageEffect.MaxTargetsプロパティ", damageEffect.MaxTargets, 1);
+                
+                // スケーリングプロパティ確認
+                damageEffect.ScalingRatio = 0.5f;
+                damageEffect.ScalingSource = ScalingAttribute.Attack;
+                AssertTestDetailed(damageEffect.ScalingRatio == 0.5f, "DamageEffect.ScalingRatioプロパティ", damageEffect.ScalingRatio, 0.5f);
+                AssertTestDetailed(damageEffect.ScalingSource == ScalingAttribute.Attack, "DamageEffect.ScalingSourceプロパティ", damageEffect.ScalingSource, ScalingAttribute.Attack);
+                
+                // ダメージ固有プロパティ確認
+                damageEffect.CriticalChance = 0.2f;
+                damageEffect.CriticalMultiplier = 2.5f;
+                damageEffect.IgnoreDefense = true;
+                AssertTestDetailed(damageEffect.CriticalChance == 0.2f, "DamageEffect.CriticalChanceプロパティ", damageEffect.CriticalChance, 0.2f);
+                AssertTestDetailed(damageEffect.CriticalMultiplier == 2.5f, "DamageEffect.CriticalMultiplierプロパティ", damageEffect.CriticalMultiplier, 2.5f);
+                AssertTest(damageEffect.IgnoreDefense, "DamageEffect.IgnoreDefenseプロパティ");
+            }
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === HealEffect クラステスト ===
+            
+            LogDebug("HealEffect プロパティテスト開始");
+            
+            var healEffect = new HealEffect("テスト回復", "テスト用の回復効果", 50f, false);
+            AssertTest(healEffect != null, "HealEffectクラスの作成確認");
+            
+            if (healEffect != null)
+            {
+                // 基本プロパティ確認
+                AssertTestDetailed(healEffect.EffectName == "テスト回復", "HealEffect.EffectNameプロパティ", healEffect.EffectName, "テスト回復");
+                AssertTestDetailed(healEffect.BaseValue == 50f, "HealEffect.BaseValueプロパティ", healEffect.BaseValue, 50f);
+                AssertTestDetailed(healEffect.EffectType == SkillEffectType.Heal, "HealEffect.EffectTypeプロパティ", healEffect.EffectType, SkillEffectType.Heal);
+                AssertTestDetailed(healEffect.TargetType == SkillTargetType.SingleAlly, "HealEffect.TargetTypeプロパティ", healEffect.TargetType, SkillTargetType.SingleAlly);
+                
+                // 回復固有プロパティ確認
+                AssertTest(!healEffect.HealMP, "HealEffect.HealMPプロパティ（HP回復）");
+                healEffect.HealMP = true;
+                AssertTest(healEffect.HealMP, "HealEffect.HealMPプロパティ設定後");
+                
+                healEffect.CanOverheal = true;
+                healEffect.OverhealDecayRate = 0.15f;
+                AssertTest(healEffect.CanOverheal, "HealEffect.CanOverhealプロパティ");
+                AssertTestDetailed(healEffect.OverhealDecayRate == 0.15f, "HealEffect.OverhealDecayRateプロパティ", healEffect.OverhealDecayRate, 0.15f);
+            }
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === StatModifierEffect クラステスト ===
+            
+            LogDebug("StatModifierEffect プロパティテスト開始");
+            
+            var statEffect = new StatModifierEffect("攻撃力強化", "攻撃力を上昇させる", StatType.Attack, 25f, 60f, false);
+            AssertTest(statEffect != null, "StatModifierEffectクラスの作成確認");
+            
+            if (statEffect != null)
+            {
+                // 基本プロパティ確認
+                AssertTestDetailed(statEffect.EffectName == "攻撃力強化", "StatModifierEffect.EffectNameプロパティ", statEffect.EffectName, "攻撃力強化");
+                AssertTestDetailed(statEffect.BaseValue == 25f, "StatModifierEffect.BaseValueプロパティ", statEffect.BaseValue, 25f);
+                AssertTestDetailed(statEffect.EffectType == SkillEffectType.StatModifier, "StatModifierEffect.EffectTypeプロパティ", statEffect.EffectType, SkillEffectType.StatModifier);
+                AssertTestDetailed(statEffect.Duration == 60f, "StatModifierEffect.Durationプロパティ", statEffect.Duration, 60f);
+                
+                // ステータス修正固有プロパティ確認
+                AssertTestDetailed(statEffect.TargetStat == StatType.Attack, "StatModifierEffect.TargetStatプロパティ", statEffect.TargetStat, StatType.Attack);
+                AssertTestDetailed(statEffect.ModifierType == ModifierType.Additive, "StatModifierEffect.ModifierTypeプロパティ", statEffect.ModifierType, ModifierType.Additive);
+                AssertTest(!statEffect.IsDebuff, "StatModifierEffect.IsDebuffプロパティ（バフ）");
+                
+                // デバフテスト
+                var debuffEffect = new StatModifierEffect("防御力低下", "防御力を低下させる", StatType.Defense, -15f, 30f, true);
+                AssertTest(debuffEffect.IsDebuff, "StatModifierEffect.IsDebuffプロパティ（デバフ）");
+                AssertTestDetailed(debuffEffect.TargetType == SkillTargetType.SingleEnemy, "デバフ対象タイプ", debuffEffect.TargetType, SkillTargetType.SingleEnemy);
+            }
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === 継続効果プロパティテスト ===
+            
+            LogDebug("継続効果プロパティテスト開始");
+            
+            var testEffect = new DamageEffect("継続ダメージ", "時間経過でダメージ", 10f);
+            
+            // 継続効果設定
+            testEffect.Duration = 15f;
+            testEffect.IsPermanent = false;
+            testEffect.TickInterval = 2f;
+            
+            AssertTestDetailed(testEffect.Duration == 15f, "継続効果.Durationプロパティ", testEffect.Duration, 15f);
+            AssertTest(!testEffect.IsPermanent, "継続効果.IsPermanentプロパティ");
+            AssertTestDetailed(testEffect.TickInterval == 2f, "継続効果.TickIntervalプロパティ", testEffect.TickInterval, 2f);
+            
+            // 永続効果テスト
+            testEffect.IsPermanent = true;
+            AssertTest(testEffect.IsPermanent, "継続効果.IsPermanent設定後");
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === 確率・条件プロパティテスト ===
+            
+            LogDebug("確率・条件プロパティテスト開始");
+            
+            testEffect.SuccessChance = 0.75f;
+            AssertTestDetailed(testEffect.SuccessChance == 0.75f, "確率.SuccessChanceプロパティ", testEffect.SuccessChance, 0.75f);
+            
+            // 範囲外値のクランプテスト
+            testEffect.SuccessChance = 1.5f; // 1.0でクランプされるべき
+            AssertTestDetailed(testEffect.SuccessChance == 1.0f, "確率.SuccessChance上限クランプ", testEffect.SuccessChance, 1.0f);
+            
+            testEffect.SuccessChance = -0.5f; // 0.0でクランプされるべき
+            AssertTestDetailed(testEffect.SuccessChance == 0.0f, "確率.SuccessChance下限クランプ", testEffect.SuccessChance, 0.0f);
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === スタック・重複プロパティテスト ===
+            
+            LogDebug("スタック・重複プロパティテスト開始");
+            
+            testEffect.CanStack = true;
+            testEffect.MaxStacks = 5;
+            testEffect.StackType = StackBehavior.Intensify;
+            
+            AssertTest(testEffect.CanStack, "スタック.CanStackプロパティ");
+            AssertTestDetailed(testEffect.MaxStacks == 5, "スタック.MaxStacksプロパティ", testEffect.MaxStacks, 5);
+            AssertTestDetailed(testEffect.StackType == StackBehavior.Intensify, "スタック.StackTypeプロパティ", testEffect.StackType, StackBehavior.Intensify);
+            
+            // 無効値処理テスト
+            testEffect.MaxStacks = 0; // 1で最小値制限されるべき
+            AssertTestDetailed(testEffect.MaxStacks == 1, "スタック.MaxStacks最小値制限", testEffect.MaxStacks, 1);
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === 視覚効果プロパティテスト ===
+            
+            LogDebug("視覚効果プロパティテスト開始");
+            
+            testEffect.EffectAnimationId = "explosion_effect";
+            testEffect.EffectColor = Color.red;
+            testEffect.ShowFloatingText = false;
+            
+            AssertTestDetailed(testEffect.EffectAnimationId == "explosion_effect", "視覚効果.EffectAnimationIdプロパティ", testEffect.EffectAnimationId, "explosion_effect");
+            AssertTestDetailed(testEffect.EffectColor == Color.red, "視覚効果.EffectColorプロパティ", testEffect.EffectColor, Color.red);
+            AssertTest(!testEffect.ShowFloatingText, "視覚効果.ShowFloatingTextプロパティ");
+
+            yield return new WaitForSeconds(0.1f);
+
+            // === 統合テスト（キャラクターとの連携） ===
+            
+            LogDebug("スキル効果統合テスト開始");
+            
+            // テストキャラクター作成
+            var testCharacter = new Character();
+            if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+            {
+                testCharacter = new Character(characterDatabase.AllCharacters[0], 5);
+            }
+            
+            // CanApplyテスト
+            bool canApplyDamage = testEffect.CanApply(testCharacter, testCharacter);
+            AssertTest(canApplyDamage, "SkillEffect.CanApplyメソッド（生存キャラクター）");
+            
+            // CalculateEffectiveValueテスト（スケーリング）
+            testEffect.BaseValue = 50f;
+            testEffect.ScalingRatio = 0.5f;
+            testEffect.ScalingSource = ScalingAttribute.Level;
+            
+            float effectiveValue = testEffect.CalculateEffectiveValue(testCharacter);
+            float expectedValue = 50f + (testCharacter.CurrentLevel * 0.5f);
+            AssertTestDetailed(Mathf.Approximately(effectiveValue, expectedValue), "SkillEffect.CalculateEffectiveValueメソッド（スケーリング計算）", effectiveValue, expectedValue);
 
             LogTestResult("スキル効果詳細プロパティテスト完了");
             yield return new WaitForSeconds(0.1f);
