@@ -310,16 +310,18 @@ namespace GatchaSpire.Gameplay.Skills
         /// </summary>
         /// <param name="target">対象キャラクター</param>
         /// <param name="caster">発動者</param>
+        /// <param name="context">戦闘コンテキスト</param>
         /// <returns>適用可能かどうか</returns>
-        public abstract bool CanApply(Character target, Character caster);
+        public abstract bool CanApply(Character target, Character caster, BattleContext context);
 
         /// <summary>
         /// 効果を適用
-        /// 各具象クラスで実装（今回は空実装でOK）
+        /// 各具象クラスで実装
         /// </summary>
         /// <param name="target">対象キャラクター</param>
         /// <param name="caster">発動者</param>
-        public abstract void Apply(Character target, Character caster);
+        /// <param name="context">戦闘コンテキスト</param>
+        public abstract void Apply(Character target, Character caster, BattleContext context);
 
         /// <summary>
         /// 効果の詳細情報を取得

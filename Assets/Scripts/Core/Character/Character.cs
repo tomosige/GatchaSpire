@@ -46,6 +46,7 @@ namespace GatchaSpire.Core.Character
         public int MaxHP => currentStats.GetFinalStat(StatType.HP);
         public int MaxMP => currentStats.GetFinalStat(StatType.MP);
         public Dictionary<StatType, int> PermanentBoosts => new Dictionary<StatType, int>(permanentBoosts);
+        public Dictionary<StatType, int> TemporaryBoosts => new Dictionary<StatType, int>(temporaryBoosts);
         public List<string> UnlockedAbilities => new List<string>(unlockedAbilities);
 
         // スキルシステムプロパティ
@@ -328,7 +329,13 @@ namespace GatchaSpire.Core.Character
         /// </summary>
         private void ApplyLevelGrowth()
         {
-            currentStats = characterData.BaseStats;
+            // 基本ステータスから再構築（参照ではなくコピー）
+            var baseStats = characterData.BaseStats;
+            currentStats = new CharacterStats(
+                baseStats.BaseHP, baseStats.BaseMP, baseStats.BaseAttack, baseStats.BaseDefense,
+                baseStats.BaseSpeed, baseStats.BaseMagic, baseStats.BaseResistance, baseStats.BaseLuck
+            );
+            
             var growthRates = characterData.GetGrowthRates();
             currentStats.ApplyLevelGrowth(currentLevel, growthRates);
         }

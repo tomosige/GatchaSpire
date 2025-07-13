@@ -91,33 +91,93 @@ namespace GatchaSpire.Gameplay.Skills
         /// </summary>
         /// <param name="target">対象キャラクター</param>
         /// <param name="caster">発動者</param>
+        /// <param name="context">戦闘コンテキスト</param>
         /// <returns>適用可能かどうか</returns>
-        public override bool CanApply(Character target, Character caster)
+        public override bool CanApply(Character target, Character caster, BattleContext context)
         {
             if (target == null || caster == null)
                 return false;
 
             // 対象が生存している場合のみ適用可能
-            return target.IsAlive;
+            if (!target.IsAlive)
+                return false;
+
+            // 成功確率チェック
+            if (SuccessChance < 1.0f)
+            {
+                float roll = UnityEngine.Random.value;
+                if (roll > SuccessChance)
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>
         /// ステータス修正効果を適用
-        /// 今回はプロパティテスト用なので空実装
+        /// Character.AddTemporaryBoostメソッドを使用した実装
         /// </summary>
         /// <param name="target">対象キャラクター</param>
         /// <param name="caster">発動者</param>
-        public override void Apply(Character target, Character caster)
+        /// <param name="context">戦闘コンテキスト</param>
+        public override void Apply(Character target, Character caster, BattleContext context)
         {
-            // 実際のステータス修正処理は将来のPhaseで実装
-            // 今回はTestSkillEffectPropertiesのためのクラス存在確認が目的
-            
-            if (!CanApply(target, caster))
+            if (!CanApply(target, caster, context))
+            {
+                Debug.Log($"[StatModifierEffect] {EffectName}の適用条件が満たされていません");
                 return;
+            }
 
-            // プレースホルダー実装
+            // 実際の修正値を計算
+            float modifierValue = CalculateEffectiveValue(caster);
+            
+            // 修正タイプに応じて最終値を計算
+            int finalModifier = 0;
+            
+            switch (modifierType)
+            {
+                case ModifierType.Additive:
+                    finalModifier = Mathf.RoundToInt(modifierValue);
+                    break;
+                    
+                case ModifierType.Multiplicative:
+                    // 乗算の場合、現在値に対する増減として計算
+                    int currentValue = target.CurrentStats.GetFinalStat(targetStat);
+                    finalModifier = Mathf.RoundToInt(currentValue * (modifierValue - 1f));
+                    break;
+                    
+                case ModifierType.Percentage:
+                    // パーセンテージの場合、現在値に対する増減として計算
+                    int currentValue2 = target.CurrentStats.GetFinalStat(targetStat);
+                    finalModifier = Mathf.RoundToInt(currentValue2 * (modifierValue / 100f));
+                    break;
+                    
+                case ModifierType.Override:
+                    // 上書きの場合、現在値からの差分として計算
+                    int currentValue3 = target.CurrentStats.GetFinalStat(targetStat);
+                    finalModifier = Mathf.RoundToInt(modifierValue) - currentValue3;
+                    break;
+            }
+
+            // Character.AddTemporaryBoostでステータス修正を適用
+            target.AddTemporaryBoost(targetStat, finalModifier);
+
+            // ログ出力
             string effectType = isDebuff ? "デバフ" : "バフ";
-            Debug.Log($"[StatModifierEffect] {EffectName}による{targetStat}{effectType}を{target.CharacterData.CharacterName}に適用 (実装予定)");
+            string sign = finalModifier >= 0 ? "+" : "";
+            Debug.Log($"[StatModifierEffect] {EffectName}: {target.CharacterData.CharacterName}の{targetStat}を{sign}{finalModifier}修正 ({effectType}, {modifierType})");
+
+            // フローティングテキスト表示フラグ確認
+            if (ShowFloatingText)
+            {
+                Debug.Log($"[StatModifierEffect] フローティングテキスト表示: {targetStat} {sign}{finalModifier}");
+            }
+
+            // 継続時間がある場合のログ
+            if (Duration > 0f)
+            {
+                Debug.Log($"[StatModifierEffect] 継続時間: {Duration:F1}秒 (継続効果管理は将来実装予定)");
+            }
         }
 
         /// <summary>
