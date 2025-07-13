@@ -103,8 +103,10 @@ namespace GatchaSpire.Gameplay.Skills
             yield return StartCoroutine(TestLevelUpSkillAcquisition());
             yield return StartCoroutine(TestJumpLevelUpSkillAcquisition());
             
-            // Phase 2: 未実装部分（コメントアウト）
-            // yield return StartCoroutine(TestSkillUnlockResultValidation());
+            // Phase 2: 段階的実装
+            yield return StartCoroutine(TestSkillUnlockResultValidation());
+            
+            // 未実装部分（コメントアウト）
             // yield return StartCoroutine(TestErrorCaseHandling());
             // yield return StartCoroutine(TestSkillCooldownManager());
             // yield return StartCoroutine(TestSkillCooldownRealtime());
@@ -336,18 +338,59 @@ namespace GatchaSpire.Gameplay.Skills
         {
             LogDebug("SkillUnlockResult検証テスト開始");
 
-            // 期待値: SkillUnlockResultクラスの存在
-            AssertTest(false, "SkillUnlockResultクラスの存在確認（未実装のため失敗予定）");
+            // テスト用スキル作成
+            var testSkill = new Skill("テストスキル", "テスト用のスキル", 101, 3);
 
-            // 期待値: SkillUnlockResultのプロパティ検証
-            AssertTest(false, "UnlockLevelプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "SkillSlotプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "UnlockedSkillプロパティの確認（未実装のため失敗予定）");
-            AssertTest(false, "CharacterNameプロパティの確認（未実装のため失敗予定）");
+            // SkillUnlockResultクラスの存在確認
+            var skillUnlockResult = new SkillUnlockResult(3, 0, testSkill, "テストキャラクター");
+            AssertTest(skillUnlockResult != null, "SkillUnlockResultクラスの存在確認");
 
-            // 期待値: ToString()メソッドの出力フォーマット検証
-            // "{CharacterName}がレベル{UnlockLevel}でスキル「{UnlockedSkill.SkillName}」を習得しました"
-            AssertTest(false, "ToString()メソッドの出力フォーマット確認（未実装のため失敗予定）");
+            if (skillUnlockResult == null)
+            {
+                LogTestResult("SkillUnlockResultが作成できないため、以降のテストをスキップ");
+                yield return new WaitForSeconds(0.1f);
+                yield break;
+            }
+
+            // プロパティ検証
+            AssertTestDetailed(skillUnlockResult.UnlockLevel == 3, "UnlockLevelプロパティの確認", skillUnlockResult.UnlockLevel, 3);
+            AssertTestDetailed(skillUnlockResult.SkillSlot == 0, "SkillSlotプロパティの確認", skillUnlockResult.SkillSlot, 0);
+            AssertTest(skillUnlockResult.UnlockedSkill == testSkill, "UnlockedSkillプロパティの確認");
+            AssertTest(skillUnlockResult.CharacterName == "テストキャラクター", "CharacterNameプロパティの確認");
+
+            // 妥当性確認
+            AssertTest(skillUnlockResult.IsValid(), "SkillUnlockResultの妥当性確認");
+
+            // ToString()メソッドの出力フォーマット検証
+            // 仕様書4.2: "{CharacterName}がレベル{UnlockLevel}でスキル「{UnlockedSkill.SkillName}」を習得しました"
+            string expectedFormat = "テストキャラクターがレベル3でスキル「テストスキル」を習得しました";
+            string actualFormat = skillUnlockResult.ToString();
+            AssertTest(actualFormat == expectedFormat, "ToString()メソッドの出力フォーマット確認");
+            
+            if (actualFormat != expectedFormat)
+            {
+                Debug.LogWarning($"[SkillSystemTest] フォーマット不一致 - 期待値: {expectedFormat}, 実際: {actualFormat}");
+            }
+
+            // LevelUpメソッドとの統合テスト
+            var skillProgression = new CharacterSkillProgression(1);
+            var levelUpResults = skillProgression.LevelUp(7, "統合テストキャラ");
+            
+            AssertTestDetailed(levelUpResults.Count == 2, "レベル1→7でのSkillUnlockResult数確認", levelUpResults.Count, 2);
+            
+            if (levelUpResults.Count >= 1)
+            {
+                var firstResult = levelUpResults[0];
+                AssertTestDetailed(firstResult.UnlockLevel == 3, "最初の習得レベル確認", firstResult.UnlockLevel, 3);
+                AssertTest(firstResult.CharacterName == "統合テストキャラ", "キャラクター名の設定確認");
+                AssertTest(firstResult.IsValid(), "習得結果の妥当性確認");
+            }
+
+            if (levelUpResults.Count >= 2)
+            {
+                var secondResult = levelUpResults[1];
+                AssertTestDetailed(secondResult.UnlockLevel == 6, "2番目の習得レベル確認", secondResult.UnlockLevel, 6);
+            }
 
             LogTestResult("SkillUnlockResult検証テスト完了");
             yield return new WaitForSeconds(0.1f);

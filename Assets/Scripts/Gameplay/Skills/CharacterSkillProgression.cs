@@ -252,6 +252,103 @@ namespace GatchaSpire.Gameplay.Skills
         }
 
         /// <summary>
+        /// レベルアップ処理（合成による複数レベル上昇対応）
+        /// 仕様書4.1に基づく実装
+        /// </summary>
+        /// <param name="targetLevel">目標レベル</param>
+        /// <param name="characterName">キャラクター名（SkillUnlockResult用）</param>
+        /// <returns>習得したスキルのリスト</returns>
+        public List<SkillUnlockResult> LevelUp(int targetLevel, string characterName = "")
+        {
+            var unlockResults = new List<SkillUnlockResult>();
+            
+            if (targetLevel <= level)
+            {
+                Debug.LogWarning($"[CharacterSkillProgression] 対象レベル{targetLevel}は現在レベル{level}以下です");
+                return unlockResults;
+            }
+            
+            int oldLevel = level;
+            level = targetLevel;
+            
+            // 旧レベルから新レベルまでの間で習得可能なスキルをチェック
+            foreach (int unlockLevel in SKILL_UNLOCK_LEVELS)
+            {
+                // 旧レベルより上で、新レベル以下のスキル習得レベルをすべて処理
+                if (unlockLevel > oldLevel && unlockLevel <= targetLevel)
+                {
+                    var result = TryUnlockSkillForLevelUp(unlockLevel, characterName);
+                    if (result != null)
+                    {
+                        unlockResults.Add(result);
+                    }
+                }
+            }
+            
+            Debug.Log($"[CharacterSkillProgression] レベル{oldLevel}→{targetLevel}で{unlockResults.Count}個のスキルを習得しました");
+            return unlockResults;
+        }
+
+        /// <summary>
+        /// 指定レベルでのスキル習得試行（レベルアップ用）
+        /// </summary>
+        /// <param name="unlockLevel">習得レベル</param>
+        /// <param name="characterName">キャラクター名</param>
+        /// <returns>習得結果（失敗時はnull）</returns>
+        private SkillUnlockResult TryUnlockSkillForLevelUp(int unlockLevel, string characterName)
+        {
+            int skillSlot = GetSkillSlot(unlockLevel);
+            
+            if (skillSlot == -1)
+            {
+                Debug.LogError($"[CharacterSkillProgression] レベル{unlockLevel}は有効なスキル習得レベルではありません");
+                return null;
+            }
+            
+            // 既に習得済みかチェック
+            if (IsSkillUnlocked(skillSlot))
+            {
+                Debug.LogWarning($"[CharacterSkillProgression] スキルスロット{skillSlot}は既に習得済みです");
+                return null;
+            }
+            
+            // レベルアップ用のスキルを作成（実際のゲームではCharacterDataから取得）
+            var skillData = CreateSkillForLevelUp(unlockLevel);
+            if (skillData == null)
+            {
+                Debug.LogError($"[CharacterSkillProgression] レベル{unlockLevel}のスキルデータが見つかりません");
+                return null;
+            }
+            
+            // スキル習得実行
+            bool unlockSuccess = UnlockSkill(skillSlot, skillData);
+            if (!unlockSuccess)
+            {
+                Debug.LogError($"[CharacterSkillProgression] スキル習得に失敗しました: レベル{unlockLevel}");
+                return null;
+            }
+            
+            // SkillUnlockResult作成
+            return new SkillUnlockResult(unlockLevel, skillSlot, skillData, characterName);
+        }
+
+        /// <summary>
+        /// レベルアップ用のスキルを作成
+        /// 実際のゲームではCharacterDataから取得するが、テスト用に動的作成
+        /// </summary>
+        /// <param name="unlockLevel">習得レベル</param>
+        /// <returns>作成されたスキル</returns>
+        private Skill CreateSkillForLevelUp(int unlockLevel)
+        {
+            return new Skill(
+                $"レベルアップスキルLv{unlockLevel}",
+                $"レベル{unlockLevel}でレベルアップ時に習得されるスキル",
+                unlockLevel * 1000 + 1, // レベルアップ用のID
+                unlockLevel
+            );
+        }
+
+        /// <summary>
         /// スキル進行状況をデバッグ出力
         /// </summary>
         public void DebugPrintSkillProgression()
