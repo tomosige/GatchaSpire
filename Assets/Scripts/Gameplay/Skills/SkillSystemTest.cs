@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using GatchaSpire.Core.Systems;
 using GatchaSpire.Core.Character;
+using System.Linq;
 
 namespace GatchaSpire.Gameplay.Skills
 {
@@ -106,13 +107,21 @@ namespace GatchaSpire.Gameplay.Skills
             // Phase 2: 段階的実装
             yield return StartCoroutine(TestSkillUnlockResultValidation());
             
+            // Phase 2: 段階的実装（続き）
+            yield return StartCoroutine(TestCharacterSkillCooldown());
+            
+            // Phase 2: 段階的実装（続き）
+            yield return StartCoroutine(TestErrorCaseHandling());
+            
+            // Phase 2: 段階的実装（続き）
+            yield return StartCoroutine(TestSkillCooldownRealtime());
+            
+            // Phase 2: 段階的実装（続き）
+            yield return StartCoroutine(TestCharacterInventoryIntegration());
+            
             // 未実装部分（コメントアウト）
-            // yield return StartCoroutine(TestErrorCaseHandling());
-            // yield return StartCoroutine(TestSkillCooldownManager());
-            // yield return StartCoroutine(TestSkillCooldownRealtime());
             // yield return StartCoroutine(TestBasicSkillEffects());
             // yield return StartCoroutine(TestSkillEffectProperties());
-            // yield return StartCoroutine(TestCharacterInventoryIntegration());
 
             LogTestResult("=== 実装済みテスト完了 ===");
         }
@@ -286,23 +295,90 @@ namespace GatchaSpire.Gameplay.Skills
         }
 
         /// <summary>
-        /// スキルクールダウン管理テスト
+        /// スキルクールダウン管理テスト（Character内包方式、仕様書2.1対応）
         /// </summary>
-        private IEnumerator TestSkillCooldownManager()
+        private IEnumerator TestCharacterSkillCooldown()
         {
             LogDebug("スキルクールダウン管理テスト開始");
 
-            // 期待値: CharacterSkillManagerクラスが存在すること
-            AssertTest(false, "CharacterSkillManagerクラスの存在確認（未実装のため失敗予定）");
+            // テスト用キャラクター作成（レベル10で全スキル習得済み）
+            var testCharacter = new Character();
+            if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+            {
+                testCharacter = new Character(characterDatabase.AllCharacters[0], 10);
+            }
 
-            // 期待値: 個別クールダウン管理機能
-            AssertTest(false, "個別スキルクールダウン管理確認（未実装のため失敗予定）");
+            // 期待値: CharacterSkillCooldownsクラスが存在すること
+            AssertTest(testCharacter.SkillCooldowns != null, "CharacterSkillCooldownsクラスの存在確認");
 
-            // 期待値: クールダウン準備完了判定
-            AssertTest(false, "スキル使用準備完了判定確認（未実装のため失敗予定）");
+            if (testCharacter.SkillCooldowns == null)
+            {
+                LogTestResult("CharacterSkillCooldownsが初期化されていないため、以降のテストをスキップ");
+                yield return new WaitForSeconds(0.1f);
+                yield break;
+            }
 
-            // 期待値: クールダウン時間の経過処理
-            AssertTest(false, "クールダウン経過時間処理確認（未実装のため失敗予定）");
+            var skillCooldowns = testCharacter.SkillCooldowns;
+
+            // 期待値: 初期状態では全スキルが使用可能
+            float testTime = 0f;
+            AssertTest(skillCooldowns.IsSkillReady(0, testTime), "初期状態でスキルスロット0が使用可能であること");
+            AssertTest(skillCooldowns.IsSkillReady(1, testTime), "初期状態でスキルスロット1が使用可能であること");
+            AssertTest(skillCooldowns.IsSkillReady(2, testTime), "初期状態でスキルスロット2が使用可能であること");
+
+            // テスト開始前にクールダウンをリセット
+            skillCooldowns.ResetAllCooldowns();
+
+            // 期待値: スキル使用でクールダウン開始
+            float cooldownTime = 3.0f;
+            skillCooldowns.UseSkill(0, testTime, cooldownTime);
+            
+            AssertTest(!skillCooldowns.IsSkillReady(0, testTime), "スキル使用直後は使用不可であること");
+            AssertTest(skillCooldowns.IsSkillReady(1, testTime), "他のスキルスロットは影響を受けないこと");
+
+            // 期待値: クールダウン時間経過前は使用不可
+            float halfCooldownTime = testTime + (cooldownTime / 2f);
+            AssertTest(!skillCooldowns.IsSkillReady(0, halfCooldownTime), "クールダウン半分経過時点では使用不可であること");
+
+            // 期待値: クールダウン時間経過後は使用可能
+            float afterCooldownTime = testTime + cooldownTime + 0.1f;
+            AssertTest(skillCooldowns.IsSkillReady(0, afterCooldownTime), "クールダウン完了後は使用可能であること");
+
+            // 期待値: 複数スキルの個別クールダウン管理
+            float currentTime = 10f;
+            skillCooldowns.ResetAllCooldowns(); // テスト用リセット
+            skillCooldowns.UseSkill(0, currentTime, 2.0f); // 2秒クールダウン
+            skillCooldowns.UseSkill(1, currentTime, 5.0f); // 5秒クールダウン
+            
+            float checkTime1 = currentTime + 3.0f; // 3秒後
+            AssertTest(skillCooldowns.IsSkillReady(0, checkTime1), "短いクールダウンは先に完了すること");
+            AssertTest(!skillCooldowns.IsSkillReady(1, checkTime1), "長いクールダウンはまだ未完了であること");
+            
+            float checkTime2 = currentTime + 6.0f; // 6秒後
+            AssertTest(skillCooldowns.IsSkillReady(0, checkTime2), "短いクールダウンは継続して使用可能であること");
+            AssertTest(skillCooldowns.IsSkillReady(1, checkTime2), "長いクールダウンも完了して使用可能であること");
+
+            // 期待値: 残りクールダウン時間の取得
+            skillCooldowns.ResetAllCooldowns();
+            skillCooldowns.UseSkill(2, 20f, 4.0f); // 4秒クールダウン
+            
+            float remaining1 = skillCooldowns.GetRemainingCooldown(2, 21f); // 1秒後
+            AssertTestDetailed(remaining1 > 2.9f && remaining1 < 3.1f, "残りクールダウン時間が正確であること", remaining1, 3.0f);
+            
+            float remaining2 = skillCooldowns.GetRemainingCooldown(2, 25f); // 5秒後（完了後）
+            AssertTestDetailed(remaining2 == 0f, "クールダウン完了後の残り時間が0であること", remaining2, 0f);
+
+            // 期待値: Character統合メソッドの確認
+            skillCooldowns.ResetAllCooldowns();
+            AssertTest(testCharacter.CanUseSkill(0, 30f), "Character.CanUseSkillが正常に動作すること");
+            
+            // 期待値: Character.UseSkillの確認（実際にスキルが習得されている場合）
+            if (testCharacter.SkillProgression.IsSkillUnlocked(0))
+            {
+                bool useResult = testCharacter.UseSkill(0, 30f);
+                AssertTest(useResult, "Character.UseSkillが成功すること");
+                AssertTest(!testCharacter.CanUseSkill(0, 30f), "スキル使用後はクールダウンが開始されること");
+            }
 
             LogTestResult("スキルクールダウン管理テスト完了");
             yield return new WaitForSeconds(0.1f);
@@ -398,29 +474,113 @@ namespace GatchaSpire.Gameplay.Skills
 
         /// <summary>
         /// エラーケース処理テスト
+        /// スキルシステム全体の堅牢性とエラーハンドリングを検証
         /// </summary>
         private IEnumerator TestErrorCaseHandling()
         {
             LogDebug("エラーケース処理テスト開始");
 
-            if (testCharacter == null)
+            // テスト用キャラクター作成
+            var testCharacter = new Character();
+            if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
             {
-                LogTestResult("テストキャラクターが存在しないため、エラーケース処理テストをスキップ");
-                yield return new WaitForSeconds(0.1f);
-                yield break;
+                testCharacter = new Character(characterDatabase.AllCharacters[0], 5);
             }
 
-            // 期待値: 無効レベル（負の値）への対応
-            AssertTest(false, "負のレベルへのレベルアップ拒否確認（未実装のため失敗予定）");
+            // === CharacterSkillProgression エラーケース ===
 
-            // 期待値: 現在レベル以下への対応
-            AssertTest(false, "現在レベル以下へのレベルアップ拒否確認（未実装のため失敗予定）");
+            // 期待値: 無効レベルでのLevelUp拒否
+            var skillProgression = new CharacterSkillProgression(5);
+            var negativeResults = skillProgression.LevelUp(-1, "テストキャラ");
+            AssertTestDetailed(negativeResults.Count == 0, "負のレベルへのレベルアップは拒否される", negativeResults.Count, 0);
 
-            // 期待値: 既に習得済みスキルの重複習得防止
-            AssertTest(false, "既習得スキルの重複習得防止確認（未実装のため失敗予定）");
+            var sameResults = skillProgression.LevelUp(5, "テストキャラ");
+            AssertTestDetailed(sameResults.Count == 0, "現在レベル以下へのレベルアップは拒否される", sameResults.Count, 0);
 
-            // 期待値: スキルデータが見つからない場合の処理
-            AssertTest(false, "スキルデータ未発見時のエラー処理確認（未実装のため失敗予定）");
+            var lowerResults = skillProgression.LevelUp(3, "テストキャラ");
+            AssertTestDetailed(lowerResults.Count == 0, "現在レベルより低いレベルへのレベルアップは拒否される", lowerResults.Count, 0);
+
+            // 期待値: 無効スキルスロットでのスキル習得拒否
+            var testSkill = new Skill("無効テストスキル", "無効スロットテスト", 999, 3);
+            bool invalidSlotResult1 = skillProgression.UnlockSkill(-1, testSkill);
+            AssertTest(!invalidSlotResult1, "負のスキルスロットでのスキル習得は拒否される");
+
+            bool invalidSlotResult2 = skillProgression.UnlockSkill(99, testSkill);
+            AssertTest(!invalidSlotResult2, "存在しないスキルスロットでのスキル習得は拒否される");
+
+            // 期待値: nullスキルでの習得拒否
+            bool nullSkillResult = skillProgression.UnlockSkill(0, null);
+            AssertTest(!nullSkillResult, "nullスキルでのスキル習得は拒否される");
+
+            // === CharacterSkillCooldowns エラーケース ===
+
+            var skillCooldowns = new CharacterSkillCooldowns();
+
+            // 期待値: 無効スキルスロットでのクールダウン操作
+            skillCooldowns.UseSkill(-1, 10f, 3f); // エラーログ出力されるが、クラッシュしない
+            bool negativeSlotReady = skillCooldowns.IsSkillReady(-1, 11f);
+            AssertTest(negativeSlotReady, "無効スキルスロットは常に使用可能として扱われる");
+
+            // 期待値: 負のクールダウン時間の処理
+            skillCooldowns.UseSkill(0, 10f, -5f); // 自動的に0に修正される
+            bool negativeCooldownReady = skillCooldowns.IsSkillReady(0, 10f);
+            AssertTest(negativeCooldownReady, "負のクールダウン時間は0に修正され即座に使用可能");
+
+            // === Character統合メソッド エラーケース ===
+
+            // 期待値: 未習得スキルの使用拒否
+            testCharacter.SkillProgression.ResetAllSkills(); // 全スキルリセット
+            bool unlockedSkillUse = testCharacter.UseSkill(0, 20f);
+            AssertTest(!unlockedSkillUse, "未習得スキルの使用は拒否される");
+
+            bool unlockedSkillCan = testCharacter.CanUseSkill(0, 20f);
+            AssertTest(!unlockedSkillCan, "未習得スキルは使用不可として判定される");
+
+            // 期待値: 無効スキルスロットでの操作
+            bool invalidSlotCan = testCharacter.CanUseSkill(-1, 20f);
+            AssertTest(!invalidSlotCan, "無効スキルスロットは使用不可として判定される");
+
+            bool invalidSlotUse = testCharacter.UseSkill(99, 20f);
+            AssertTest(!invalidSlotUse, "存在しないスキルスロットの使用は拒否される");
+
+            // === SkillUnlockResult エラーケース ===
+
+            // 期待値: 無効データでのSkillUnlockResult
+            var invalidResult1 = new SkillUnlockResult(0, 0, null, "テストキャラ");
+            AssertTest(!invalidResult1.IsValid(), "nullスキルを持つSkillUnlockResultは無効");
+
+            var invalidResult2 = new SkillUnlockResult(-1, 0, testSkill, "テストキャラ");
+            AssertTest(!invalidResult2.IsValid(), "負のレベルを持つSkillUnlockResultは無効");
+
+            var invalidResult3 = new SkillUnlockResult(3, -1, testSkill, "テストキャラ");
+            AssertTest(!invalidResult3.IsValid(), "負のスキルスロットを持つSkillUnlockResultは無効");
+
+            var invalidResult4 = new SkillUnlockResult(3, 0, testSkill, "");
+            AssertTest(!invalidResult4.IsValid(), "空の名前を持つSkillUnlockResultは無効");
+
+            var invalidResult5 = new SkillUnlockResult(3, 0, testSkill, null);
+            AssertTest(!invalidResult5.IsValid(), "null名前を持つSkillUnlockResultは無効");
+
+            // 期待値: 無効SkillUnlockResultのToString()
+            string invalidToString = invalidResult1.ToString();
+            AssertTest(invalidToString == "無効なスキル習得結果", "無効SkillUnlockResultは適切なエラーメッセージを返す");
+
+            // === 境界値テスト ===
+
+            // 期待値: 最大レベル以上への対応
+            if (testCharacter.CharacterData != null)
+            {
+                int maxLevel = testCharacter.CharacterData.MaxLevel;
+                var overMaxResults = testCharacter.SkillProgression.LevelUp(maxLevel + 10, "境界値テスト");
+                // レベル上限を超えても、有効な習得レベル範囲のスキルは習得される
+                AssertTest(overMaxResults.Count >= 0, "最大レベル超過でもクラッシュせずに処理される");
+            }
+
+            // 期待値: ゼロ時間でのクールダウン処理
+            skillCooldowns.ResetAllCooldowns();
+            skillCooldowns.UseSkill(0, 30f, 0f); // 0秒クールダウン
+            bool zeroCooldownReady = skillCooldowns.IsSkillReady(0, 30f);
+            AssertTest(zeroCooldownReady, "0秒クールダウンは即座に使用可能");
 
             LogTestResult("エラーケース処理テスト完了");
             yield return new WaitForSeconds(0.1f);
@@ -428,24 +588,187 @@ namespace GatchaSpire.Gameplay.Skills
 
         /// <summary>
         /// スキルクールダウンリアルタイム処理テスト
+        /// Time.timeを使用した実戦的なクールダウン動作を検証
         /// </summary>
         private IEnumerator TestSkillCooldownRealtime()
         {
             LogDebug("スキルクールダウンリアルタイム処理テスト開始");
 
-            // 期待値: IsSkillReadyメソッドの動作確認
-            AssertTest(false, "IsSkillReadyメソッドの初回呼び出し確認（未実装のため失敗予定）");
-            AssertTest(false, "クールダウン中のIsSkillReady=false確認（未実装のため失敗予定）");
-            AssertTest(false, "クールダウン完了後のIsSkillReady=true確認（未実装のため失敗予定）");
+            // テスト用キャラクター作成（レベル10で全スキル習得済み）
+            var testCharacter = new Character();
+            if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+            {
+                testCharacter = new Character(characterDatabase.AllCharacters[0], 10);
+            }
 
-            // 期待値: UseSkillメソッドの時刻記録
-            AssertTest(false, "UseSkillメソッドの時刻記録確認（未実装のため失敗予定）");
-            AssertTest(false, "SkillLastUsedTimeの更新確認（未実装のため失敗予定）");
-            AssertTest(false, "SkillCooldownsの設定確認（未実装のため失敗予定）");
+            // 期待値: Character統合での初期状態確認
+            AssertTest(testCharacter.SkillCooldowns != null, "CharacterSkillCooldownsの初期化確認");
+            AssertTest(testCharacter.SkillProgression != null, "CharacterSkillProgressionの初期化確認");
 
-            // 期待値: Time.timeを使用したリアルタイム処理
-            AssertTest(false, "Time.time基準のクールダウン計算確認（未実装のため失敗予定）");
-            AssertTest(false, "0.1秒間隔処理での経過時間計算確認（未実装のため失敗予定）");
+            if (testCharacter.SkillCooldowns == null)
+            {
+                LogTestResult("CharacterSkillCooldownsが初期化されていないため、リアルタイムテストをスキップ");
+                yield return new WaitForSeconds(0.1f);
+                yield break;
+            }
+
+            // テスト前の状態リセット
+            testCharacter.SkillCooldowns.ResetAllCooldowns();
+
+            // === Time.timeベースでの初期状態確認 ===
+            
+            float testStartTime = Time.time;
+            AssertTest(testCharacter.CanUseSkill(0), "Time.time使用時の初期状態でのスキル使用可能確認");
+            AssertTest(testCharacter.SkillCooldowns.IsSkillReady(0, Time.time), "Time.time使用時のIsSkillReady初期状態確認");
+
+            // === リアルタイムクールダウンテスト（テスト用スキル） ===
+
+            // テスト用の短いクールダウンスキルを作成して手動設定
+            var testSkill1sec = new Skill("1秒テストスキル", "リアルタイムテスト用", 9001, 3);
+            testCharacter.SkillProgression.UnlockSkill(0, testSkill1sec); // スロット0に設定
+            
+            // テスト用クールダウン時間を直接使用（Character.UseSkillを迂回）
+            float testCooldownTime = 1.0f; // テスト専用の1秒クールダウン
+            testCharacter.SkillCooldowns.UseSkill(0, Time.time, testCooldownTime);
+            
+            LogDebug($"テスト用クールダウン開始: {testCooldownTime}秒");
+            
+            // 使用直後は使用不可
+            AssertTest(!testCharacter.SkillCooldowns.IsSkillReady(0, Time.time), "スキル使用直後はクールダウン中で使用不可");
+            
+            float afterUseTime = Time.time;
+            float remaining1 = testCharacter.SkillCooldowns.GetRemainingCooldown(0, afterUseTime);
+            AssertTest(remaining1 > 0f, "使用直後は残りクールダウン時間が0より大きい");
+            AssertTest(remaining1 <= testCooldownTime + 0.1f, "残りクールダウン時間がテスト設定値以下であること");
+
+            LogDebug($"クールダウン開始: 残り時間 {remaining1:F2}秒");
+
+            // 0.5秒待機（クールダウン途中）
+            yield return new WaitForSeconds(0.5f);
+            
+            bool stillCooldown = !testCharacter.SkillCooldowns.IsSkillReady(0, Time.time);
+            AssertTest(stillCooldown, "0.5秒経過時点ではまだクールダウン中");
+            
+            float midTime = Time.time;
+            float remaining2 = testCharacter.SkillCooldowns.GetRemainingCooldown(0, midTime);
+            AssertTest(remaining2 < remaining1, "時間経過により残りクールダウン時間が減少している");
+            
+            LogDebug($"0.5秒経過: 残り時間 {remaining2:F2}秒");
+
+            // さらに0.7秒待機（クールダウン完了予定）
+            yield return new WaitForSeconds(0.7f);
+            
+            bool cooldownComplete = testCharacter.SkillCooldowns.IsSkillReady(0, Time.time);
+            AssertTest(cooldownComplete, "1.2秒経過後はクールダウンが完了して使用可能");
+            
+            float endTime = Time.time;
+            float remaining3 = testCharacter.SkillCooldowns.GetRemainingCooldown(0, endTime);
+            AssertTestDetailed(remaining3 == 0f, "クールダウン完了後の残り時間が0", remaining3, 0f);
+
+            LogDebug($"1.2秒経過: 残り時間 {remaining3:F2}秒");
+
+            // === 複数スキル同時クールダウンテスト ===
+
+            testCharacter.SkillCooldowns.ResetAllCooldowns();
+            
+            float simultaneousStart = Time.time;
+            
+            // テスト用スキルを作成（異なるクールダウン時間）
+            var testSkill1_5sec = new Skill("1.5秒テストスキル", "複数テスト用", 9002, 6);
+            var testSkill2sec = new Skill("2秒テストスキル", "複数テスト用", 9003, 10);
+            
+            testCharacter.SkillProgression.UnlockSkill(1, testSkill1_5sec); // スロット1に設定
+            testCharacter.SkillProgression.UnlockSkill(2, testSkill2sec);   // スロット2に設定
+            
+            // 複数スキルを手動でクールダウン開始（異なる時間）
+            float cooldown1 = 1.5f;
+            float cooldown2 = 2.0f;
+            testCharacter.SkillCooldowns.UseSkill(1, simultaneousStart, cooldown1);
+            testCharacter.SkillCooldowns.UseSkill(2, simultaneousStart, cooldown2);
+            
+            LogDebug($"複数クールダウン開始: スキル1={cooldown1}秒, スキル2={cooldown2}秒");
+            
+            // 両方ともクールダウン中
+            AssertTest(!testCharacter.SkillCooldowns.IsSkillReady(1, Time.time), "同時使用後スキル1はクールダウン中");
+            AssertTest(!testCharacter.SkillCooldowns.IsSkillReady(2, Time.time), "同時使用後スキル2はクールダウン中");
+
+            // 1秒待機
+            yield return new WaitForSeconds(1.0f);
+            
+            // まだ両方ともクールダウン中
+            AssertTest(!testCharacter.SkillCooldowns.IsSkillReady(1, Time.time), "1秒経過でもスキル1はクールダウン中");
+            AssertTest(!testCharacter.SkillCooldowns.IsSkillReady(2, Time.time), "1秒経過でもスキル2はクールダウン中");
+
+            // さらに0.7秒待機（合計1.7秒、スキル1完了予定）
+            yield return new WaitForSeconds(0.7f);
+            
+            bool skill1Ready = testCharacter.SkillCooldowns.IsSkillReady(1, Time.time);
+            bool skill2Ready = testCharacter.SkillCooldowns.IsSkillReady(2, Time.time);
+            
+            AssertTest(skill1Ready, "1.7秒経過後スキル1（1.5秒CD）は使用可能");
+            AssertTest(!skill2Ready, "1.7秒経過時点でスキル2（2秒CD）はまだクールダウン中");
+
+            // さらに0.5秒待機（合計2.2秒、スキル2完了予定）
+            yield return new WaitForSeconds(0.5f);
+            
+            AssertTest(testCharacter.SkillCooldowns.IsSkillReady(1, Time.time), "2.2秒経過後スキル1は継続して使用可能");
+            AssertTest(testCharacter.SkillCooldowns.IsSkillReady(2, Time.time), "2.2秒経過後スキル2（2秒CD）も使用可能");
+
+            // === 精度テスト（Time.deltaTimeとの整合性） ===
+
+            testCharacter.SkillCooldowns.ResetAllCooldowns();
+            
+            float precisionStart = Time.time;
+            testCharacter.SkillCooldowns.UseSkill(0, precisionStart, 1.0f); // 正確に1秒クールダウン
+            
+            // 0.1秒刻みで確認
+            for (int i = 1; i <= 12; i++) // 1.2秒まで確認
+            {
+                yield return new WaitForSeconds(0.1f);
+                
+                float checkTime = Time.time;
+                bool isReady = testCharacter.SkillCooldowns.IsSkillReady(0, checkTime);
+                float elapsed = checkTime - precisionStart;
+                
+                if (elapsed < 1.0f)
+                {
+                    AssertTest(!isReady, $"{elapsed:F1}秒経過時点ではクールダウン中");
+                }
+                else
+                {
+                    AssertTest(isReady, $"{elapsed:F1}秒経過時点ではクールダウン完了");
+                }
+                
+                LogDebug($"精度テスト {i}: 経過{elapsed:F2}秒, 使用可能: {isReady}");
+            }
+
+            // === Unity統合テスト（デフォルト引数動作） ===
+
+            testCharacter.SkillCooldowns.ResetAllCooldowns();
+            
+            // テスト用短時間クールダウンスキルを使用
+            var testSkillShort = new Skill("短時間テストスキル", "Unity統合テスト用", 9004, 3);
+            testCharacter.SkillProgression.UnlockSkill(0, testSkillShort); // スロット0に再設定
+            
+            // CharacterSkillCooldowns.UseSkillで直接短時間クールダウンを設定
+            float shortCooldown = 1.5f;
+            testCharacter.SkillCooldowns.UseSkill(0, Time.time, shortCooldown);
+            
+            // Time.timeデフォルト引数の動作確認
+            bool defaultTimeCan = testCharacter.CanUseSkill(0); // currentTime = -1f → Time.time使用
+            AssertTest(!defaultTimeCan, "デフォルト引数（Time.time）でのクールダウン中判定");
+            
+            yield return new WaitForSeconds(shortCooldown + 0.2f); // クールダウン完了まで待機
+            
+            bool afterDefaultCan = testCharacter.CanUseSkill(0);
+            AssertTest(afterDefaultCan, "デフォルト引数（Time.time）でのクールダウン完了判定");
+            
+            // 実際にCharacter.UseSkillでの使用テスト（但し、スキルのCooldownTimeプロパティは3秒）
+            // NOTE: この部分は実際のスキルクールダウン時間（3秒）が使用される
+            LogDebug("Character.UseSkillテストはスキルのCooldownTimeプロパティ（デフォルト3秒）を使用します");
+
+            float totalTestTime = Time.time - testStartTime;
+            LogDebug($"リアルタイムテスト総時間: {totalTestTime:F2}秒");
 
             LogTestResult("スキルクールダウンリアルタイム処理テスト完了");
             yield return new WaitForSeconds(0.1f);
@@ -494,18 +817,160 @@ namespace GatchaSpire.Gameplay.Skills
         {
             LogDebug("CharacterInventoryManager統合テスト開始");
 
-            // 期待値: FuseCharactersメソッドとの統合
-            AssertTest(false, "FuseCharactersメソッドの存在確認（未実装のため失敗予定）");
+            // CharacterInventoryManagerの取得
+            var inventoryManager = FindObjectOfType<CharacterInventoryManager>();
+            AssertTest(inventoryManager != null, "CharacterInventoryManagerクラスの存在確認");
 
-            // 期待値: 合成レベル計算とスキル習得の連携
-            AssertTest(false, "合成レベル計算後のスキル習得確認（未実装のため失敗予定）");
+            if (inventoryManager == null)
+            {
+                LogTestResult("CharacterInventoryManagerが見つからないため、統合テストをスキップ");
+                yield return new WaitForSeconds(0.1f);
+                yield break;
+            }
 
-            // 期待値: CharacterFusionResultの作成
-            AssertTest(false, "CharacterFusionResultクラスの存在確認（未実装のため失敗予定）");
-            AssertTest(false, "SkillUnlocksプロパティの設定確認（未実装のため失敗予定）");
+            // === 合成前準備：テストキャラクター作成 ===
 
-            // 期待値: 複数レベル上昇による複数スキル習得の統合処理
-            AssertTest(false, "合成による複数レベル上昇でのスキル習得確認（未実装のため失敗予定）");
+            // ベースキャラクター（レベル1）
+            var baseCharacter = new Character();
+            if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+            {
+                baseCharacter = new Character(characterDatabase.AllCharacters[0], 1);
+            }
+
+            // 素材キャラクター（複数体）
+            var materialCharacters = new List<Character>();
+            for (int i = 0; i < 3; i++)
+            {
+                var material = new Character();
+                if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+                {
+                    material = new Character(characterDatabase.AllCharacters[0], 1);
+                }
+                materialCharacters.Add(material);
+            }
+
+            // インベントリに追加
+            bool baseAdded = inventoryManager.AddCharacter(baseCharacter);
+            AssertTest(baseAdded, "ベースキャラクターのインベントリ追加成功");
+
+            var materialIds = new List<string>();
+            foreach (var material in materialCharacters)
+            {
+                bool materialAdded = inventoryManager.AddCharacter(material);
+                AssertTest(materialAdded, "素材キャラクターのインベントリ追加成功");
+                materialIds.Add(material.InstanceId);
+            }
+
+            // === 合成前状態確認 ===
+
+            int preLevel = baseCharacter.CurrentLevel;
+            int preSkillCount = baseCharacter.SkillProgression.UnlockedSkillCount;
+            
+            LogDebug($"合成前状態: レベル{preLevel}, スキル{preSkillCount}個");
+
+            // === キャラクター合成実行 ===
+
+            bool fuseResult = inventoryManager.FuseCharacters(baseCharacter.InstanceId, materialIds, out Character resultCharacter);
+            AssertTest(fuseResult, "FuseCharactersメソッドの実行成功");
+            AssertTest(resultCharacter != null, "合成結果キャラクターの取得成功");
+
+            if (resultCharacter == null)
+            {
+                LogTestResult("合成結果が取得できないため、以降のテストをスキップ");
+                yield return new WaitForSeconds(0.1f);
+                yield break;
+            }
+
+            // === 合成後状態確認 ===
+
+            int postLevel = resultCharacter.CurrentLevel;
+            int postSkillCount = resultCharacter.SkillProgression.UnlockedSkillCount;
+            
+            LogDebug($"合成後状態: レベル{postLevel}, スキル{postSkillCount}個");
+
+            // 期待値: レベルアップ発生
+            AssertTest(postLevel > preLevel, "合成によりレベルアップが発生すること");
+
+            // 期待値: スキル習得発生（レベル3以上到達時）
+            if (postLevel >= 3)
+            {
+                AssertTest(postSkillCount > preSkillCount, "レベル3以上到達時はスキルが習得されること");
+                
+                // レベル別スキル習得確認
+                if (postLevel >= 3)
+                {
+                    AssertTest(resultCharacter.SkillProgression.IsSkillUnlocked(0), "レベル3スキル（スロット0）が習得されていること");
+                }
+                if (postLevel >= 6)
+                {
+                    AssertTest(resultCharacter.SkillProgression.IsSkillUnlocked(1), "レベル6スキル（スロット1）が習得されていること");
+                }
+                if (postLevel >= 10)
+                {
+                    AssertTest(resultCharacter.SkillProgression.IsSkillUnlocked(2), "レベル10スキル（スロット2）が習得されていること");
+                }
+            }
+
+            // === 複数レベル上昇テスト ===
+
+            // 追加の大量経験値合成テスト
+            var additionalMaterials = new List<Character>();
+            for (int i = 0; i < 5; i++) // より多くの素材
+            {
+                var material = new Character();
+                if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+                {
+                    material = new Character(characterDatabase.AllCharacters[0], 1);
+                }
+                inventoryManager.AddCharacter(material);
+                additionalMaterials.Add(material);
+            }
+
+            var additionalMaterialIds = additionalMaterials.Select(m => m.InstanceId).ToList();
+            int preLevel2 = resultCharacter.CurrentLevel;
+            int preSkillCount2 = resultCharacter.SkillProgression.UnlockedSkillCount;
+
+            bool fuseResult2 = inventoryManager.FuseCharacters(resultCharacter.InstanceId, additionalMaterialIds, out Character finalResult);
+            AssertTest(fuseResult2, "追加合成の実行成功");
+
+            if (finalResult != null)
+            {
+                int finalLevel = finalResult.CurrentLevel;
+                int finalSkillCount = finalResult.SkillProgression.UnlockedSkillCount;
+                
+                LogDebug($"最終状態: レベル{finalLevel}, スキル{finalSkillCount}個");
+
+                // 期待値: 大量経験値による大幅レベルアップとスキル習得
+                AssertTest(finalLevel > preLevel2, "追加合成により更なるレベルアップが発生すること");
+                
+                if (finalLevel >= 6 && preLevel2 < 6)
+                {
+                    AssertTest(finalSkillCount > preSkillCount2, "レベル6到達により新規スキルが習得されること");
+                }
+
+                // === 統合機能テスト ===
+
+                // Character.AddExperience統合確認
+                var testChar = new Character();
+                if (characterDatabase != null && characterDatabase.AllCharacters.Count > 0)
+                {
+                    testChar = new Character(characterDatabase.AllCharacters[0], 1);
+                }
+
+                int preAddExpLevel = testChar.CurrentLevel;
+                int preAddExpSkills = testChar.SkillProgression.UnlockedSkillCount;
+
+                // 大量経験値追加（レベル3以上到達予定）
+                int addedLevels = testChar.AddExperience(5000);
+                
+                AssertTest(addedLevels > 0, "AddExperienceメソッドによるレベルアップ成功");
+                AssertTest(testChar.CurrentLevel > preAddExpLevel, "経験値追加によりレベルが上昇すること");
+                
+                if (testChar.CurrentLevel >= 3)
+                {
+                    AssertTest(testChar.SkillProgression.UnlockedSkillCount > preAddExpSkills, "AddExperience統合によりスキルが自動習得されること");
+                }
+            }
 
             LogTestResult("CharacterInventoryManager統合テスト完了");
             yield return new WaitForSeconds(0.1f);

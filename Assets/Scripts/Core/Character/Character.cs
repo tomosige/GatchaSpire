@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using GatchaSpire.Core.Error;
+using GatchaSpire.Gameplay.Skills;
 
 namespace GatchaSpire.Core.Character
 {
@@ -29,6 +30,10 @@ namespace GatchaSpire.Core.Character
         [SerializeField] private Dictionary<StatType, int> temporaryBoosts = new Dictionary<StatType, int>();
         [SerializeField] private List<string> unlockedAbilities = new List<string>();
 
+        [Header("スキルシステム")]
+        [SerializeField] private CharacterSkillProgression skillProgression;
+        [SerializeField] private CharacterSkillCooldowns skillCooldowns;
+
         // プロパティ
         public string InstanceId => instanceId;
         public CharacterData CharacterData => characterData;
@@ -42,6 +47,10 @@ namespace GatchaSpire.Core.Character
         public int MaxMP => currentStats.GetFinalStat(StatType.MP);
         public Dictionary<StatType, int> PermanentBoosts => new Dictionary<StatType, int>(permanentBoosts);
         public List<string> UnlockedAbilities => new List<string>(unlockedAbilities);
+
+        // スキルシステムプロパティ
+        public CharacterSkillProgression SkillProgression => skillProgression;
+        public CharacterSkillCooldowns SkillCooldowns => skillCooldowns;
 
         // 計算プロパティ
         public bool IsMaxLevel => currentLevel >= characterData.MaxLevel;
@@ -62,6 +71,10 @@ namespace GatchaSpire.Core.Character
             permanentBoosts = new Dictionary<StatType, int>();
             temporaryBoosts = new Dictionary<StatType, int>();
             unlockedAbilities = new List<string>();
+            
+            // スキルシステム初期化
+            skillProgression = new CharacterSkillProgression(1);
+            skillCooldowns = new CharacterSkillCooldowns();
         }
 
         /// <summary>
@@ -109,6 +122,10 @@ namespace GatchaSpire.Core.Character
                 // HP/MPを最大値に設定
                 RestoreToFullHealth();
 
+                // スキルシステム初期化（レベルに応じて）
+                skillProgression = new CharacterSkillProgression(currentLevel);
+                skillCooldowns = new CharacterSkillCooldowns();
+
                 Debug.Log($"[Character] {data.CharacterName} をレベル{currentLevel}で初期化しました");
             }
             catch (Exception e)
@@ -152,6 +169,20 @@ namespace GatchaSpire.Core.Character
                 
                 // HP/MPを最大値まで回復
                 RestoreToFullHealth();
+                
+                // スキル習得処理（レベルアップ時自動実行）
+                if (skillProgression != null)
+                {
+                    var skillUnlockResults = skillProgression.LevelUp(currentLevel, characterData.CharacterName);
+                    if (skillUnlockResults.Count > 0)
+                    {
+                        Debug.Log($"[Character] {characterData.CharacterName}がレベル{oldLevel}→{currentLevel}で{skillUnlockResults.Count}個のスキルを習得しました");
+                        foreach (var result in skillUnlockResults)
+                        {
+                            Debug.Log($"[Character] {result.ToString()}");
+                        }
+                    }
+                }
             }
 
             return levelUps;
@@ -373,6 +404,83 @@ namespace GatchaSpire.Core.Character
             }
 
             return info;
+        }
+
+        /// <summary>
+        /// 指定スキルが使用可能かどうかを判定
+        /// スキル習得状況とクールダウン状況を総合的に判定
+        /// </summary>
+        /// <param name="skillSlot">スキルスロット番号</param>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>使用可能かどうか</returns>
+        public bool CanUseSkill(int skillSlot, float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            // スキル習得確認
+            if (!skillProgression.IsSkillUnlocked(skillSlot))
+            {
+                return false;
+            }
+
+            // クールダウン確認
+            return skillCooldowns.IsSkillReady(skillSlot, currentTime);
+        }
+
+        /// <summary>
+        /// スキルを使用してクールダウンを開始
+        /// </summary>
+        /// <param name="skillSlot">スキルスロット番号</param>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>使用に成功したかどうか</returns>
+        public bool UseSkill(int skillSlot, float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            // 使用可能性確認
+            if (!CanUseSkill(skillSlot, currentTime))
+            {
+                return false;
+            }
+
+            // スキル情報取得
+            var skill = skillProgression.GetSkill(skillSlot);
+            if (skill == null)
+            {
+                Debug.LogError($"[Character] スキルスロット{skillSlot}のスキル情報が見つかりません");
+                return false;
+            }
+
+            // クールダウン開始
+            skillCooldowns.UseSkill(skillSlot, currentTime, skill.CooldownTime);
+            
+            Debug.Log($"[Character] {characterData.CharacterName}がスキル「{skill.SkillName}」を使用しました");
+            return true;
+        }
+
+        /// <summary>
+        /// スキルシステムの状況を取得
+        /// </summary>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>スキル状況の文字列</returns>
+        public string GetSkillStatus(float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            var status = $"=== {characterData.CharacterName} スキル状況 ===\n";
+            status += $"レベル: {currentLevel}, 習得スキル数: {skillProgression.UnlockedSkillCount}/{skillProgression.MaxSkillSlots}\n";
+            status += $"クールダウン: {skillCooldowns.GetCooldownStatus(currentTime)}\n";
+            
+            return status;
         }
 
         /// <summary>
