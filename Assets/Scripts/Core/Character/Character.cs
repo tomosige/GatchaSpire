@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using GatchaSpire.Core.Error;
+using GatchaSpire.Gameplay.Skills;
 
 namespace GatchaSpire.Core.Character
 {
@@ -26,8 +27,16 @@ namespace GatchaSpire.Core.Character
 
         [Header("強化状態")]
         [SerializeField] private Dictionary<StatType, int> permanentBoosts = new Dictionary<StatType, int>();
-        [SerializeField] private Dictionary<StatType, int> temporaryBoosts = new Dictionary<StatType, int>();
+        [SerializeField] private Dictionary<StatType, int> temporaryBoosts = new Dictionary<StatType, int>(); // 旧式（互換性のため残存）
+        [SerializeField] private List<TemporaryEffect> temporaryEffects = new List<TemporaryEffect>(); // 新式の個別効果管理
         [SerializeField] private List<string> unlockedAbilities = new List<string>();
+
+        [Header("スキルシステム")]
+        [SerializeField] private CharacterSkillProgression skillProgression;
+        [SerializeField] private CharacterSkillCooldowns skillCooldowns;
+
+        [Header("デバッグ用")]
+        [SerializeField] private bool enableDebugLogs = false;
 
         // プロパティ
         public string InstanceId => instanceId;
@@ -41,7 +50,13 @@ namespace GatchaSpire.Core.Character
         public int MaxHP => currentStats.GetFinalStat(StatType.HP);
         public int MaxMP => currentStats.GetFinalStat(StatType.MP);
         public Dictionary<StatType, int> PermanentBoosts => new Dictionary<StatType, int>(permanentBoosts);
+        public Dictionary<StatType, int> TemporaryBoosts => new Dictionary<StatType, int>(temporaryBoosts); // 旧式（互換性のため）
+        public List<TemporaryEffect> TemporaryEffects => new List<TemporaryEffect>(temporaryEffects); // 新式の個別効果
         public List<string> UnlockedAbilities => new List<string>(unlockedAbilities);
+
+        // スキルシステムプロパティ
+        public CharacterSkillProgression SkillProgression => skillProgression;
+        public CharacterSkillCooldowns SkillCooldowns => skillCooldowns;
 
         // 計算プロパティ
         public bool IsMaxLevel => currentLevel >= characterData.MaxLevel;
@@ -51,6 +66,7 @@ namespace GatchaSpire.Core.Character
         public bool IsAlive => currentHP > 0;
         public float HPPercentage => MaxHP > 0 ? (float)currentHP / MaxHP : 0f;
         public float MPPercentage => MaxMP > 0 ? (float)currentMP / MaxMP : 0f;
+        public bool IsDead => currentHP <= 0;
 
         /// <summary>
         /// デフォルトコンストラクタ（シリアライゼーション用）
@@ -61,7 +77,12 @@ namespace GatchaSpire.Core.Character
             acquiredDate = DateTime.Now;
             permanentBoosts = new Dictionary<StatType, int>();
             temporaryBoosts = new Dictionary<StatType, int>();
+            temporaryEffects = new List<TemporaryEffect>();
             unlockedAbilities = new List<string>();
+            
+            // スキルシステム初期化
+            skillProgression = new CharacterSkillProgression(1);
+            skillCooldowns = new CharacterSkillCooldowns();
         }
 
         /// <summary>
@@ -96,7 +117,7 @@ namespace GatchaSpire.Core.Character
 
                 // 基本ステータスの設定
                 currentStats = data.BaseStats;
-                
+
                 // レベルに応じた成長を適用
                 if (currentLevel > data.BaseLevel)
                 {
@@ -109,7 +130,14 @@ namespace GatchaSpire.Core.Character
                 // HP/MPを最大値に設定
                 RestoreToFullHealth();
 
-                Debug.Log($"[Character] {data.CharacterName} をレベル{currentLevel}で初期化しました");
+                // スキルシステム初期化（レベルに応じて）
+                skillProgression = new CharacterSkillProgression(currentLevel);
+                skillCooldowns = new CharacterSkillCooldowns();
+
+                if (enableDebugLogs)
+                {
+                    Debug.Log($"[Character] {data.CharacterName} をレベル{currentLevel}で初期化しました");
+                }
             }
             catch (Exception e)
             {
@@ -141,8 +169,11 @@ namespace GatchaSpire.Core.Character
                 currentLevel++;
                 levelUps++;
 
-                Debug.Log($"[Character] {characterData.CharacterName} がレベル{currentLevel}になりました！");
-            }
+                if (enableDebugLogs)
+                {
+                    Debug.Log($"[Character] {characterData.CharacterName} がレベル{currentLevel}になりました！");
+                }
+                }
 
             // レベルアップした場合はステータスを再計算
             if (levelUps > 0)
@@ -152,6 +183,26 @@ namespace GatchaSpire.Core.Character
                 
                 // HP/MPを最大値まで回復
                 RestoreToFullHealth();
+                
+                // スキル習得処理（レベルアップ時自動実行）
+                if (skillProgression != null)
+                {
+                    var skillUnlockResults = skillProgression.LevelUp(currentLevel, characterData.CharacterName);
+                    if (skillUnlockResults.Count > 0)
+                    {
+                        if (enableDebugLogs)
+                        {
+                            Debug.Log($"[Character] {characterData.CharacterName}がレベル{oldLevel}→{currentLevel}で{skillUnlockResults.Count}個のスキルを習得しました");
+                        }
+                        foreach (var result in skillUnlockResults)
+                        {
+                            if (enableDebugLogs)
+                            {
+                                Debug.Log($"[Character] {result.ToString()}");
+                            }
+                        }
+                    }
+                }
             }
 
             return levelUps;
@@ -173,7 +224,10 @@ namespace GatchaSpire.Core.Character
                 permanentBoosts[statType] = boost;
 
             RefreshStats();
-            Debug.Log($"[Character] {characterData.CharacterName}の{statType}を{boost}永続強化しました");
+             if (enableDebugLogs)
+            {
+                Debug.Log($"[Character] {characterData.CharacterName}の{statType}を{boost}永続強化しました");
+            }
         }
 
         /// <summary>
@@ -184,23 +238,127 @@ namespace GatchaSpire.Core.Character
         public void AddTemporaryBoost(StatType statType, int boost)
         {
             if (boost == 0)
+            {
                 return;
-
+            }
             if (temporaryBoosts.ContainsKey(statType))
+            {
                 temporaryBoosts[statType] += boost;
+            }
             else
+            {
                 temporaryBoosts[statType] = boost;
+            }
 
             RefreshStats();
         }
 
         /// <summary>
-        /// 一時的な強化をクリア
+        /// 一時的な強化をクリア（旧式）
         /// </summary>
         public void ClearTemporaryBoosts()
         {
             temporaryBoosts.Clear();
             RefreshStats();
+        }
+
+        /// <summary>
+        /// 一時的な効果を追加（新式・ID管理）
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <param name="statType">対象ステータス</param>
+        /// <param name="value">修正値</param>
+        public void AddTemporaryEffect(string effectId, StatType statType, int value)
+        {
+            if (string.IsNullOrEmpty(effectId) || value == 0)
+            {
+                return;
+            }
+
+            // 同じIDの効果が既に存在する場合は除去
+            RemoveTemporaryEffect(effectId);
+
+            // 新しい効果を追加
+            var effect = new TemporaryEffect(effectId, statType, value);
+            temporaryEffects.Add(effect);
+
+            RefreshStats();
+             if (enableDebugLogs)
+            {
+                Debug.Log($"[Character] {characterData.CharacterName}に一時的効果を追加: {effect}");
+            }
+        }
+
+        /// <summary>
+        /// 指定IDの一時的効果を除去
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <returns>除去された効果の数</returns>
+        public int RemoveTemporaryEffect(string effectId)
+        {
+            if (string.IsNullOrEmpty(effectId))
+            {
+                return 0;
+            }
+
+            int removedCount = temporaryEffects.RemoveAll(effect => effect.HasSameId(effectId));
+            
+            if (removedCount > 0)
+            {
+                RefreshStats();
+                 if (enableDebugLogs)
+                {
+                    Debug.Log($"[Character] {characterData.CharacterName}から一時的効果を除去: {effectId} ({removedCount}個)");
+                }
+            }
+
+            return removedCount;
+        }
+
+        /// <summary>
+        /// 全ての一時的効果をクリア（新式）
+        /// </summary>
+        public void ClearAllTemporaryEffects()
+        {
+            int count = temporaryEffects.Count;
+            temporaryEffects.Clear();
+            
+            if (count > 0)
+            {
+                RefreshStats();
+                 if (enableDebugLogs)
+                {
+                    Debug.Log($"[Character] {characterData.CharacterName}の全一時的効果をクリア ({count}個)");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 指定ステータスタイプの一時的効果の合計値を取得
+        /// </summary>
+        /// <param name="statType">ステータス種類</param>
+        /// <returns>合計修正値</returns>
+        public int GetTemporaryEffectTotal(StatType statType)
+        {
+            int total = 0;
+            foreach (var effect in temporaryEffects)
+            {
+                if (effect.AffectsStat(statType))
+                {
+                    total += effect.Value;
+                }
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// 指定IDの効果が存在するかチェック
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <returns>存在する場合true</returns>
+        public bool HasTemporaryEffect(string effectId)
+        {
+            return temporaryEffects.Exists(effect => effect.HasSameId(effectId));
         }
 
         /// <summary>
@@ -213,7 +371,10 @@ namespace GatchaSpire.Core.Character
                 return;
 
             unlockedAbilities.Add(abilityName);
-            Debug.Log($"[Character] {characterData.CharacterName}が{abilityName}をアンロックしました");
+             if (enableDebugLogs)
+            {
+                Debug.Log($"[Character] {characterData.CharacterName}が{abilityName}をアンロックしました");
+            }
         }
 
         /// <summary>
@@ -231,7 +392,10 @@ namespace GatchaSpire.Core.Character
 
             if (!IsAlive)
             {
-                Debug.Log($"[Character] {characterData.CharacterName}が倒れました");
+                 if (enableDebugLogs)
+                {
+                    Debug.Log($"[Character] {characterData.CharacterName}が倒れました");
+                }
             }
 
             return actualDamage;
@@ -297,7 +461,13 @@ namespace GatchaSpire.Core.Character
         /// </summary>
         private void ApplyLevelGrowth()
         {
-            currentStats = characterData.BaseStats;
+            // 基本ステータスから再構築（参照ではなくコピー）
+            var baseStats = characterData.BaseStats;
+            currentStats = new CharacterStats(
+                baseStats.BaseHP, baseStats.BaseMP, baseStats.BaseAttack, baseStats.BaseDefense,
+                baseStats.BaseSpeed, baseStats.BaseMagic, baseStats.BaseResistance, baseStats.BaseLuck
+            );
+            
             var growthRates = characterData.GetGrowthRates();
             currentStats.ApplyLevelGrowth(currentLevel, growthRates);
         }
@@ -327,10 +497,19 @@ namespace GatchaSpire.Core.Character
             // 永続強化を適用
             ApplyPermanentBoosts();
             
-            // 一時的な強化を適用
+            // 一時的な強化を適用（旧式）
             foreach (var boost in temporaryBoosts)
             {
                 currentStats.AddModifier(boost.Key, boost.Value);
+            }
+            
+            // 一時的な効果を適用（新式）
+            foreach (var effect in temporaryEffects)
+            {
+                if (effect.IsValid())
+                {
+                    currentStats.AddModifier(effect.StatType, effect.Value);
+                }
             }
 
             // HP/MPが最大値を超えないように調整
@@ -363,6 +542,25 @@ namespace GatchaSpire.Core.Character
                 }
             }
 
+            if (temporaryEffects.Count > 0)
+            {
+                info += "\n=== 一時的効果 ===\n";
+                foreach (var effect in temporaryEffects)
+                {
+                    info += $"- {effect}\n";
+                }
+            }
+            
+            // 旧式の一時的強化も表示（互換性のため）
+            if (temporaryBoosts.Count > 0)
+            {
+                info += "\n=== 一時的強化（旧式） ===\n";
+                foreach (var boost in temporaryBoosts)
+                {
+                    info += $"{boost.Key}: +{boost.Value}\n";
+                }
+            }
+
             if (unlockedAbilities.Count > 0)
             {
                 info += "\n=== アンロック済み能力 ===\n";
@@ -373,6 +571,86 @@ namespace GatchaSpire.Core.Character
             }
 
             return info;
+        }
+
+        /// <summary>
+        /// 指定スキルが使用可能かどうかを判定
+        /// スキル習得状況とクールダウン状況を総合的に判定
+        /// </summary>
+        /// <param name="skillSlot">スキルスロット番号</param>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>使用可能かどうか</returns>
+        public bool CanUseSkill(int skillSlot, float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            // スキル習得確認
+            if (!skillProgression.IsSkillUnlocked(skillSlot))
+            {
+                return false;
+            }
+
+            // クールダウン確認
+            return skillCooldowns.IsSkillReady(skillSlot, currentTime);
+        }
+
+        /// <summary>
+        /// スキルを使用してクールダウンを開始
+        /// </summary>
+        /// <param name="skillSlot">スキルスロット番号</param>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>使用に成功したかどうか</returns>
+        public bool UseSkill(int skillSlot, float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            // 使用可能性確認
+            if (!CanUseSkill(skillSlot, currentTime))
+            {
+                return false;
+            }
+
+            // スキル情報取得
+            var skill = skillProgression.GetSkill(skillSlot);
+            if (skill == null)
+            {
+                Debug.LogError($"[Character] スキルスロット{skillSlot}のスキル情報が見つかりません");
+                return false;
+            }
+
+            // クールダウン開始
+            skillCooldowns.UseSkill(skillSlot, currentTime, skill.CooldownTime);
+            
+            if (enableDebugLogs)
+            {
+                Debug.Log($"[Character] {characterData.CharacterName}がスキル「{skill.SkillName}」を使用しました");
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// スキルシステムの状況を取得
+        /// </summary>
+        /// <param name="currentTime">現在時刻（デフォルトはTime.time）</param>
+        /// <returns>スキル状況の文字列</returns>
+        public string GetSkillStatus(float currentTime = -1f)
+        {
+            if (currentTime < 0f)
+            {
+                currentTime = Time.time;
+            }
+
+            var status = $"=== {characterData.CharacterName} スキル状況 ===\n";
+            status += $"レベル: {currentLevel}, 習得スキル数: {skillProgression.UnlockedSkillCount}/{skillProgression.MaxSkillSlots}\n";
+            status += $"クールダウン: {skillCooldowns.GetCooldownStatus(currentTime)}\n";
+            
+            return status;
         }
 
         /// <summary>

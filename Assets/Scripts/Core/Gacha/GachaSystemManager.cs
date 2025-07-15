@@ -11,6 +11,7 @@ namespace GatchaSpire.Core.Gacha
     /// <summary>
     /// ガチャシステム統合管理クラス
     /// </summary>
+    [DefaultExecutionOrder(-40)] // GoldManagerの後に実行
     public class GachaSystemManager : GameSystemBase, IPersistentSystem
     {
         [Header("ガチャ設定")]
@@ -635,7 +636,7 @@ namespace GatchaSpire.Core.Gacha
         {
             // TODO: セーブシステムとの連携
             if (enableDebugLogs)
-                Debug.Log($"[{SystemName}] ガチャデータを保存しました");
+                ReportInfo("ガチャデータを保存しました");
         }
 
         /// <summary>
@@ -645,7 +646,7 @@ namespace GatchaSpire.Core.Gacha
         {
             // TODO: セーブシステムとの連携
             if (enableDebugLogs)
-                Debug.Log($"[{SystemName}] ガチャデータを読み込みました");
+                ReportInfo("ガチャデータを読み込みました");
         }
 
         /// <summary>

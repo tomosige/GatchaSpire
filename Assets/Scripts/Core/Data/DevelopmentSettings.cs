@@ -34,7 +34,7 @@ namespace GatchaSpire.Core
         [SerializeField] private bool infiniteGold = false;
         [SerializeField] private bool maxGachaLevel = false;
         [SerializeField] private bool skipTutorial = false;
-        [SerializeField] private bool noBachaCost = false;
+        [SerializeField] private bool noGachaCost = false;
 
 
         [Header("UI設定")]
@@ -63,7 +63,7 @@ namespace GatchaSpire.Core
         public bool InfiniteGold => infiniteGold;
         public bool MaxGachaLevel => maxGachaLevel;
         public bool SkipTutorial => skipTutorial;
-        public bool NoGachaCost => noBachaCost;
+        public bool NoGachaCost => noGachaCost;
 
         public bool ShowDebugUI => showDebugUI;
         public bool ShowPerformanceStats => showPerformanceStats;

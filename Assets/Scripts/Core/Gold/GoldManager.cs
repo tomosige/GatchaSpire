@@ -9,6 +9,7 @@ namespace GatchaSpire.Core.Gold
     /// Unity特化ゴールドシステムのメインマネージャー
     /// IUnityGameSystem, IUnityResettable, IApplicationLifecycleを実装
     /// </summary>
+    [DefaultExecutionOrder(-50)] // UnityGameSystemCoordinatorの後に実行
     public class GoldManager : GameSystemBase, IUnityResettable, IPersistentSystem
     {
         [Header("ゴールドシステム設定")]

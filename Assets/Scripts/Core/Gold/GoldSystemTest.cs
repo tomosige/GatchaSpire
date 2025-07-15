@@ -8,41 +8,18 @@ namespace GatchaSpire.Core.Gold
     /// <summary>
     /// ゴールドシステムのテストクラス
     /// </summary>
-    public class GoldSystemTest : GameSystemBase
+    public class GoldSystemTest : TestExclusiveBase
     {
-        [Header("テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
-        [SerializeField] private bool showDetailedLogs = true;
-
-        protected override string SystemName => "GoldSystemTest";
+        public override float MaxExecutionTimeSeconds => 120f; // 2分
 
         private List<string> testResults = new List<string>();
         private GoldManager goldManager;
-
-        protected override void OnSystemInitialize()
-        {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunAllTests());
-            }
-        }
-
-        private void Awake()
-        {
-            OnAwake();
-        }
 
         /// <summary>
         /// 全てのテストを実行
         /// </summary>
         /// <returns></returns>
-        public IEnumerator RunAllTests()
+        public override IEnumerator RunAllTests()
         {
             ReportInfo("ゴールドシステムテストを開始します");
             testResults.Clear();
@@ -420,21 +397,6 @@ namespace GatchaSpire.Core.Gold
             }
         }
 
-        /// <summary>
-        /// 手動でテストを実行
-        /// </summary>
-        [ContextMenu("Run Tests")]
-        public void RunTestsManually()
-        {
-            if (Application.isPlaying)
-            {
-                StartCoroutine(RunAllTests());
-            }
-            else
-            {
-                ReportWarning("テストは実行時のみ動作します");
-            }
-        }
 
         /// <summary>
         /// パフォーマンステストを実行

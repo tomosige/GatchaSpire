@@ -9,6 +9,7 @@ namespace GatchaSpire.Core.Character
     /// キャラクターデータベース管理クラス
     /// データ読み込み、検索・フィルタ、データ整合性チェックを提供
     /// </summary>
+    [DefaultExecutionOrder(-45)] // GoldManagerと同じ頃に実行
     public class CharacterDatabase : GameSystemBase
     {
         [Header("データベース設定")]

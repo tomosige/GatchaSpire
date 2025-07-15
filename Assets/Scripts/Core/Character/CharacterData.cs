@@ -299,5 +299,17 @@ namespace GatchaSpire.Core.Character
                 Debug.LogWarning($"[CharacterData] {name}: {validation.GetSummary()}");
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        /// <summary>
+        /// テスト用データ設定メソッド
+        /// </summary>
+        /// <param name="name">キャラクター名</param>
+        public void SetTestData(string name)
+        {
+            characterName = name;
+            characterId = name.GetHashCode(); // 簡易的なID生成
+        }
+#endif
     }
 }

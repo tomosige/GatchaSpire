@@ -1,25 +1,28 @@
 using UnityEngine;
 using GatchaSpire.Core.Error;
+using System.Collections;
 
 namespace GatchaSpire.Core.Systems
 {
     /// <summary>
     /// Phase 0基盤システムの動作確認用ランナー
     /// </summary>
-    public class FoundationTestRunner : MonoBehaviour
+    public class FoundationTestRunner : TestExclusiveBase
     {
         [Header("確認設定")]
-        [SerializeField] private bool autoRunOnStart = true;
         [SerializeField] private bool showDebugLogs = true;
 
-        private void Start()
-        {
-            if (autoRunOnStart)
-            {
-                CheckFoundationSystems();
-            }
-        }
+        public override float MaxExecutionTimeSeconds => 60f; // 1分
 
+        /// <summary>
+        /// 基盤システムの動作確認
+        /// </summary>
+        public override IEnumerator RunAllTests()
+        {
+            CheckFoundationSystems();
+            yield return null;
+        }
+        
         /// <summary>
         /// 基盤システムの動作確認
         /// </summary>

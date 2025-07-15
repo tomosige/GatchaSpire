@@ -15,7 +15,8 @@
       "Bash(mkdir:*)",
       "Bash(find:*)",
       "mcp__unity-mcp__console_setFilter",
-      "mcp__unity-mcp__menu_execute"
+      "mcp__unity-mcp__menu_execute",
+      "Bash(rg:*)"
     ],
     "deny": []
   },

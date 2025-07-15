@@ -22,8 +22,7 @@
 
 ### 1.4 フィールド
 - **camelCase**を使用
-- プライベートフィールドはアンダースコア接頭辞を使用する場合あり
-- 例: `currentLevel`, `_currentGold`, `isInitialized`
+- 例: `currentLevel`, `currentGold`, `isInitialized`
 
 ### 1.5 定数
 - **UPPER_SNAKE_CASE**を使用
@@ -271,6 +270,23 @@ public void SetGold(int amount)
 ```csharp
 private static GoldManager _instance;
 public static GoldManager Instance => _instance;
+```
+
+## 13. その他の規約
+
+
+### 13.1 if文にはブロック文が必須
+```csharp
+// NG
+if(!isInitialized) return;
+if(!isInitialized) 
+    return;
+
+// OK
+if(!isInitialized) 
+{
+    return;
+}
 ```
 
 ---

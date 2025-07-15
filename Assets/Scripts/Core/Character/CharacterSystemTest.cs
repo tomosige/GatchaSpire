@@ -8,43 +8,22 @@ namespace GatchaSpire.Core.Character
     /// <summary>
     /// キャラクターシステムのテストクラス
     /// </summary>
-    public class CharacterSystemTest : GameSystemBase
+    public class CharacterSystemTest : TestExclusiveBase
     {
         [Header("テスト設定")]
-        [SerializeField] private bool runTestsOnStart = true;
-        [SerializeField] private bool showDetailedLogs = true;
         [SerializeField] private bool createTestCharacterData = true;
 
-        protected override string SystemName => "CharacterSystemTest";
+        public override float MaxExecutionTimeSeconds => 120f; // 2分
 
         private List<string> testResults = new List<string>();
         private CharacterDatabase characterDatabase;
         private List<CharacterData> testCharacterDataList = new List<CharacterData>();
 
-        private void Awake()
-        {
-            OnAwake();
-        }
-
-        protected override void OnSystemInitialize()
-        {
-            testResults = new List<string>();
-            priority = SystemPriority.Lowest;
-        }
-
-        protected override void OnSystemStart()
-        {
-            if (runTestsOnStart)
-            {
-                StartCoroutine(RunAllTests());
-            }
-        }
-
         /// <summary>
         /// 全てのテストを実行
         /// </summary>
         /// <returns></returns>
-        public IEnumerator RunAllTests()
+        public override IEnumerator RunAllTests()
         {
             ReportInfo("キャラクターシステムテストを開始します");
             testResults.Clear();
@@ -427,21 +406,6 @@ namespace GatchaSpire.Core.Character
             }
         }
 
-        /// <summary>
-        /// 手動でテストを実行
-        /// </summary>
-        [ContextMenu("Run Tests")]
-        public void RunTestsManually()
-        {
-            if (Application.isPlaying)
-            {
-                StartCoroutine(RunAllTests());
-            }
-            else
-            {
-                ReportWarning("テストは実行時のみ動作します");
-            }
-        }
 
         /// <summary>
         /// 統計情報を表示
