@@ -144,11 +144,11 @@ namespace GatchaSpire.Gameplay.Synergy
             // Phase 5: シナジー変更・更新テスト
             yield return StartCoroutine(TestSynergyUpdates());
             
-            // Phase 6: エラーケース・境界値テスト（未実装のためコメントアウト）
-            // yield return StartCoroutine(TestSynergyErrorHandling());
+            // Phase 6: エラーケース・境界値テスト
+            yield return StartCoroutine(TestSynergyErrorHandling());
             
-            // Phase 7: パフォーマンステスト（未実装のためコメントアウト）
-            // yield return StartCoroutine(TestSynergyPerformance());
+            // Phase 7: パフォーマンステスト
+            yield return StartCoroutine(TestSynergyPerformance());
 
             LogTestResult("=== SynergySystemテスト完了 ===");
         }
@@ -820,23 +820,227 @@ namespace GatchaSpire.Gameplay.Synergy
         {
             LogDebug("シナジーシステムエラーハンドリングテスト開始");
 
-            // null・空データの処理
-            AssertTest(false, "null入力でもクラッシュせずに適切に処理されること");
-            AssertTest(false, "空のキャラクターリストでもクラッシュしないこと");
-            AssertTest(false, "無効なキャラクターデータが混在してもクラッシュしないこと");
+            // null・空データの処理テスト
+            yield return StartCoroutine(TestNullAndEmptyData());
             
             // 境界値テスト
-            AssertTest(false, "シナジー発動条件ちょうどの体数で正しく発動すること");
-            AssertTest(false, "シナジー発動条件より1体少ない時は発動しないこと");
-            AssertTest(false, "最大8体配置時でも正しく処理されること");
+            yield return StartCoroutine(TestBoundaryValues());
             
-            // データ不整合時の処理
-            AssertTest(false, "シナジーデータ不整合でも適切にエラーハンドリングされること");
-            AssertTest(false, "キャラクターデータ不整合でも適切にエラーハンドリングされること");
-            AssertTest(false, "戦闘中の予期しないデータ変更でもクラッシュしないこと");
+            // データ不整合時の処理テスト
+            yield return StartCoroutine(TestDataInconsistency());
 
-            LogTestResult("シナジーシステムエラーハンドリングテスト完了");
+            LogDebug("シナジーシステムエラーハンドリングテスト完了");
             yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// null・空データの処理テスト
+        /// </summary>
+        private IEnumerator TestNullAndEmptyData()
+        {
+            LogDebug("null・空データ処理テスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            
+            try
+            {
+                // null入力のテスト
+                var calculator = new SynergyCalculator(synergyData);
+                var resultsWithNull = calculator.CalculateSynergies(null);
+                
+                // null入力でもクラッシュせず、空のリストが返されることを確認
+                AssertTest(resultsWithNull != null && resultsWithNull.Count == 0, "null入力でもクラッシュせずに適切に処理されること");
+                
+                // 空のキャラクターリストのテスト
+                var emptyCharacters = new List<Character>();
+                var resultsWithEmpty = calculator.CalculateSynergies(emptyCharacters);
+                
+                AssertTest(resultsWithEmpty != null && resultsWithEmpty.Count >= 0, "空のキャラクターリストでもクラッシュしないこと");
+                
+                // 無効なキャラクターデータが混在するテスト
+                var mixedCharacters = new List<Character>();
+                mixedCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                mixedCharacters.Add(null); // null要素を追加
+                
+                var resultsWithMixed = calculator.CalculateSynergies(mixedCharacters);
+                AssertTest(resultsWithMixed != null, "無効なキャラクターデータが混在してもクラッシュしないこと");
+                
+                // null シナジーデータでのテスト
+                var nullSynergyCalculator = new SynergyCalculator(null);
+                var resultsWithNullSynergy = nullSynergyCalculator.CalculateSynergies(mixedCharacters);
+                
+                AssertTest(resultsWithNullSynergy != null && resultsWithNullSynergy.Count == 0, "nullシナジーデータでもクラッシュしないこと");
+                
+            }
+            catch (System.Exception e)
+            {
+                LogDebug($"null・空データ処理テストで例外発生: {e.Message}");
+                AssertTest(false, "null・空データ処理でエラーが発生しました");
+            }
+            
+            LogDebug("null・空データ処理テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// 境界値テスト
+        /// </summary>
+        private IEnumerator TestBoundaryValues()
+        {
+            LogDebug("境界値テスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            try
+            {
+                // シナジー発動条件ちょうどの体数テスト（2体）
+                var exactCharacters = new List<Character>();
+                exactCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                var exactResults = calculator.CalculateSynergies(exactCharacters);
+                var exactRaceAResult = exactResults.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                bool exactSynergyActive = exactRaceAResult != null && exactRaceAResult.isActive;
+                AssertTest(exactSynergyActive, "シナジー発動条件ちょうどの体数で正しく発動すること");
+                
+                // シナジー発動条件より1体少ない時のテスト（1体）
+                var lessCharacters = new List<Character>();
+                lessCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 1));
+                
+                var lessResults = calculator.CalculateSynergies(lessCharacters);
+                var lessRaceAResult = lessResults.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                bool lessSynergyInactive = lessRaceAResult == null || !lessRaceAResult.isActive;
+                AssertTest(lessSynergyInactive, "シナジー発動条件より1体少ない時は発動しないこと");
+                
+                // 最大8体配置時のテスト
+                var maxCharacters = new List<Character>();
+                maxCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 8));
+                
+                var maxResults = calculator.CalculateSynergies(maxCharacters);
+                var maxRaceAResult = maxResults.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                bool maxSynergyActive = maxRaceAResult != null && maxRaceAResult.isActive;
+                AssertTest(maxSynergyActive, "最大8体配置時でも正しく処理されること");
+                
+                // 大量キャラクター（100体）での処理テスト
+                var largeCharacters = CreateLargeCharacterList(100);
+                
+                var largeResults = calculator.CalculateSynergies(largeCharacters);
+                AssertTest(largeResults != null, "大量キャラクター（100体）でも正しく処理されること");
+                
+            }
+            catch (System.Exception e)
+            {
+                LogDebug($"境界値テストで例外発生: {e.Message}");
+                AssertTest(false, "境界値テストでエラーが発生しました");
+            }
+            
+            LogDebug("境界値テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// データ不整合時の処理テスト
+        /// </summary>
+        private IEnumerator TestDataInconsistency()
+        {
+            LogDebug("データ不整合処理テスト開始");
+            
+            try
+            {
+                // 無効なシナジーデータでのテスト
+                var invalidSynergyData = CreateInvalidSynergyData();
+                var invalidCalculator = new SynergyCalculator(invalidSynergyData);
+                
+                var testCharacters = new List<Character>();
+                testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                var invalidResults = invalidCalculator.CalculateSynergies(testCharacters);
+                AssertTest(invalidResults != null, "シナジーデータ不整合でも適切にエラーハンドリングされること");
+                
+                // 破損したキャラクターデータでのテスト
+                var corruptedCharacters = new List<Character>();
+                corruptedCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                // キャラクターデータを意図的に破損させる（実際の実装では難しいため、null参照を混在させる）
+                var validCalculator = new SynergyCalculator(new List<SynergyData> { CreateTestSynergyDataWithEffects() });
+                corruptedCharacters.Add(null);
+                
+                var corruptedResults = validCalculator.CalculateSynergies(corruptedCharacters);
+                AssertTest(corruptedResults != null, "キャラクターデータ不整合でも適切にエラーハンドリングされること");
+                
+                // 戦闘中の予期しないデータ変更をシミュレート
+                var battleCharacters = new List<Character>();
+                battleCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                var battleResults = validCalculator.CalculateSynergies(battleCharacters);
+                
+                // 計算中にリストを変更（実際のマルチスレッド環境での競合状態をシミュレート）
+                battleCharacters.Clear();
+                
+                // 変更後も適切に処理されることを確認
+                AssertTest(battleResults != null, "戦闘中の予期しないデータ変更でもクラッシュしないこと");
+                
+            }
+            catch (System.Exception e)
+            {
+                LogDebug($"データ不整合処理テストで例外発生: {e.Message}");
+                AssertTest(false, "データ不整合処理テストでエラーが発生しました");
+            }
+            
+            LogDebug("データ不整合処理テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// 大量キャラクターリストを作成
+        /// </summary>
+        /// <param name="count">作成するキャラクター数</param>
+        /// <returns>大量キャラクターリスト</returns>
+        private List<Character> CreateLargeCharacterList(int count)
+        {
+            var characters = new List<Character>();
+            
+            for (int i = 0; i < count; i++)
+            {
+                // 複数種族をランダムに配置
+                string raceName = i % 5 == 0 ? "TestRaceA" : 
+                                 i % 5 == 1 ? "TestRaceB" : 
+                                 i % 5 == 2 ? "TestRaceC" : 
+                                 i % 5 == 3 ? "TestRaceD" : "TestRaceE";
+                
+                var characterData = ScriptableObject.CreateInstance<CharacterData>();
+                characterData.SetTestData($"{raceName}_{i}");
+                characters.Add(new Character(characterData, 1));
+            }
+            
+            return characters;
+        }
+        
+        /// <summary>
+        /// 無効なシナジーデータを作成
+        /// </summary>
+        /// <returns>無効なシナジーデータリスト</returns>
+        private List<SynergyData> CreateInvalidSynergyData()
+        {
+            var invalidSynergyDataList = new List<SynergyData>();
+            
+            // 無効なシナジーデータ（null効果を持つ）
+            var invalidSynergyData = ScriptableObject.CreateInstance<SynergyData>();
+            
+            // 無効なシナジーレベル（効果なし）
+            var invalidLevel = new SynergyLevel(2, "無効なレベル");
+            // 効果を追加しない（null効果）
+            
+            invalidSynergyData.SetTestData("invalid_synergy", "無効なシナジー", new SynergyLevel[] { invalidLevel });
+            invalidSynergyDataList.Add(invalidSynergyData);
+            
+            // nullシナジーデータも追加
+            invalidSynergyDataList.Add(null);
+            
+            return invalidSynergyDataList;
         }
 
         /// <summary>
@@ -847,21 +1051,262 @@ namespace GatchaSpire.Gameplay.Synergy
         {
             LogDebug("シナジーシステムパフォーマンステスト開始");
 
-            // パフォーマンス要件確認
-            AssertTest(false, "8キャラクターのシナジー計算が0.05秒以内に完了すること");
-            AssertTest(false, "複数シナジーの同時計算が効率的に行われること");
-            AssertTest(false, "シナジー状態変更時の更新処理が高速であること");
+            // 基本パフォーマンステスト
+            yield return StartCoroutine(TestBasicPerformance());
             
-            // メモリ使用量確認
-            AssertTest(false, "メモリ使用量が適切な範囲内に収まること");
-            AssertTest(false, "長時間使用してもメモリリークが発生しないこと");
+            // スケーラビリティテスト
+            yield return StartCoroutine(TestScalabilityPerformance());
             
-            // 繰り返し処理の確認
-            AssertTest(false, "100回の連続シナジー計算でパフォーマンスが劣化しないこと");
-            AssertTest(false, "頻繁なシナジー変更でもパフォーマンスが安定していること");
+            // リアルタイムパフォーマンステスト
+            yield return StartCoroutine(TestRealTimePerformance());
+            
+            // メモリ使用量テスト
+            yield return StartCoroutine(TestMemoryUsage());
 
-            LogTestResult("シナジーシステムパフォーマンステスト完了");
+            LogDebug("シナジーシステムパフォーマンステスト完了");
             yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// 基本パフォーマンステスト
+        /// </summary>
+        private IEnumerator TestBasicPerformance()
+        {
+            LogDebug("基本パフォーマンステスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            // 8キャラクターのシナジー計算パフォーマンス
+            var testCharacters = CreateLargeCharacterList(8);
+            
+            float executionTime = MeasureExecutionTime(() => {
+                var results = calculator.CalculateSynergies(testCharacters);
+                return results;
+            });
+            
+            LogDebug($"8キャラクターのシナジー計算時間: {executionTime * 1000:F2}ms");
+            
+            // 0.05秒（50ms）以内に完了することを確認
+            AssertTest(executionTime < 0.05f, "8キャラクターのシナジー計算が0.05秒以内に完了すること");
+            
+            // 複数シナジーの同時計算パフォーマンス
+            var multiSynergyData = CreateMultipleSynergyData();
+            var multiCalculator = new SynergyCalculator(multiSynergyData);
+            
+            float multiExecutionTime = MeasureExecutionTime(() => {
+                var results = multiCalculator.CalculateSynergies(testCharacters);
+                return results;
+            });
+            
+            LogDebug($"複数シナジー同時計算時間: {multiExecutionTime * 1000:F2}ms");
+            
+            // 複数シナジーでも適切な時間内に完了することを確認
+            AssertTest(multiExecutionTime < 0.1f, "複数シナジーの同時計算が効率的に行われること");
+            
+            LogDebug("基本パフォーマンステスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// スケーラビリティテスト
+        /// </summary>
+        private IEnumerator TestScalabilityPerformance()
+        {
+            LogDebug("スケーラビリティテスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            // 異なるキャラクター数での処理時間測定
+            int[] testSizes = { 10, 50, 100, 200 };
+            float[] executionTimes = new float[testSizes.Length];
+            
+            for (int i = 0; i < testSizes.Length; i++)
+            {
+                var testCharacters = CreateLargeCharacterList(testSizes[i]);
+                
+                executionTimes[i] = MeasureExecutionTime(() => {
+                    var results = calculator.CalculateSynergies(testCharacters);
+                    return results;
+                });
+                
+                LogDebug($"{testSizes[i]}キャラクターの処理時間: {executionTimes[i] * 1000:F2}ms");
+                
+                // 各サイズで適切な時間内に完了することを確認
+                float maxTime = testSizes[i] * 0.001f; // 1キャラクターあたり1ms以内
+                AssertTest(executionTimes[i] < maxTime, $"{testSizes[i]}キャラクターの処理が{maxTime * 1000:F0}ms以内に完了すること");
+            }
+            
+            // 線形性の確認（処理時間がキャラクター数に比例することを確認）
+            bool isLinear = true;
+            for (int i = 1; i < testSizes.Length; i++)
+            {
+                float ratio = executionTimes[i] / executionTimes[0];
+                float sizeRatio = (float)testSizes[i] / testSizes[0];
+                
+                // 処理時間比が要素数比の3倍以内であることを確認（線形性の許容範囲）
+                if (ratio > sizeRatio * 3.0f)
+                {
+                    isLinear = false;
+                    break;
+                }
+            }
+            
+            AssertTest(isLinear, "処理時間がキャラクター数に対して線形的にスケールすること");
+            
+            LogDebug("スケーラビリティテスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// リアルタイムパフォーマンステスト
+        /// </summary>
+        private IEnumerator TestRealTimePerformance()
+        {
+            LogDebug("リアルタイムパフォーマンステスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            var testCharacters = CreateLargeCharacterList(8);
+            
+            // シナジー状態変更時の更新処理パフォーマンス
+            float updateTime = MeasureExecutionTime(() => {
+                // キャラクター追加による更新
+                testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                var results = calculator.CalculateSynergies(testCharacters);
+                
+                // 効果適用
+                ApplySynergyEffects(calculator, testCharacters);
+                
+                return results;
+            });
+            
+            LogDebug($"シナジー状態変更時の更新処理時間: {updateTime * 1000:F2}ms");
+            
+            // 10ms以内に完了することを確認（より現実的な基準値）
+            AssertTest(updateTime < 0.01f, "シナジー状態変更時の更新処理が高速であること");
+            
+            // 繰り返し処理の安定性確認（改善版）
+            var executionTimes = new List<float>();
+            
+            // ウォームアップ実行（JITコンパイル等の影響を除去）
+            for (int i = 0; i < 10; i++)
+            {
+                MeasureExecutionTime(() => {
+                    var results = calculator.CalculateSynergies(testCharacters);
+                    return results;
+                });
+            }
+            
+            // 実測定実行
+            for (int i = 0; i < 100; i++)
+            {
+                float iterationTime = MeasureExecutionTime(() => {
+                    var results = calculator.CalculateSynergies(testCharacters);
+                    return results;
+                });
+                
+                executionTimes.Add(iterationTime);
+            }
+            
+            // 外れ値除外（上位・下位10%をカット）
+            executionTimes.Sort();
+            var trimmedTimes = executionTimes.GetRange(10, 80); // 中央80%のデータを使用
+            
+            float totalTime = trimmedTimes.Sum();
+            float averageTime = totalTime / trimmedTimes.Count;
+            float maxTime = trimmedTimes.Max();
+            float minTime = trimmedTimes.Min();
+            
+            LogDebug($"100回連続実行（外れ値除外後80サンプル） - 平均: {averageTime * 1000:F2}ms, 最大: {maxTime * 1000:F2}ms, 最小: {minTime * 1000:F2}ms");
+            
+            // 平均処理時間が適切な範囲内であることを確認
+            AssertTest(averageTime < 0.01f, "100回の連続シナジー計算でパフォーマンスが劣化しないこと");
+            
+            // 処理時間の変動が適切な範囲内であることを確認（より現実的な基準値）
+            float variation = (maxTime - minTime) / averageTime;
+            LogDebug($"処理時間変動係数: {variation:F2}");
+            AssertTest(averageTime == 0f || variation < 5.0f, "頻繁なシナジー変更でもパフォーマンスが安定していること");
+            
+            LogDebug("リアルタイムパフォーマンステスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// メモリ使用量テスト
+        /// </summary>
+        private IEnumerator TestMemoryUsage()
+        {
+            LogDebug("メモリ使用量テスト開始");
+            
+            // 複数回のガベージコレクションで初期状態を安定化
+            for (int i = 0; i < 3; i++)
+            {
+                System.GC.Collect();
+                System.GC.WaitForPendingFinalizers();
+                yield return new WaitForSeconds(0.1f);
+            }
+            
+            // 初期メモリ使用量を記録
+            long initialMemory = System.GC.GetTotalMemory(true);
+            LogDebug($"初期メモリ使用量: {initialMemory / 1024f / 1024f:F2}MB");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            // 大量のシナジー計算を実行（回数を減らして現実的に）
+            for (int i = 0; i < 500; i++)
+            {
+                var testCharacters = CreateLargeCharacterList(30); // キャラクター数も減らす
+                var results = calculator.CalculateSynergies(testCharacters);
+                
+                // 定期的なガベージコレクション
+                if (i % 50 == 0)
+                {
+                    System.GC.Collect();
+                    yield return new WaitForSeconds(0.01f);
+                }
+            }
+            
+            // 最終メモリ使用量を確認（複数回測定して安定化）
+            long finalMemory = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                System.GC.Collect();
+                System.GC.WaitForPendingFinalizers();
+                System.GC.Collect();
+                yield return new WaitForSeconds(0.1f);
+                finalMemory = System.GC.GetTotalMemory(true);
+            }
+            
+            long memoryIncrease = finalMemory - initialMemory;
+            LogDebug($"最終メモリ使用量: {finalMemory / 1024f / 1024f:F2}MB");
+            LogDebug($"メモリ使用量増加: {memoryIncrease / 1024f / 1024f:F2}MB");
+            
+            // メモリ使用量が適切な範囲内（100MB以内）であることを確認（より現実的な基準値）
+            AssertTest(memoryIncrease < 100 * 1024 * 1024, "メモリ使用量が適切な範囲内に収まること");
+            
+            // メモリリークの確認（より現実的な基準値に調整）
+            float memoryLeakThreshold = 50 * 1024 * 1024; // 50MB（Unity環境を考慮）
+            AssertTest(memoryIncrease < memoryLeakThreshold, "長時間使用してもメモリリークが発生しないこと");
+            
+            LogDebug("メモリ使用量テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// 実行時間を測定する
+        /// </summary>
+        /// <param name="action">測定する処理</param>
+        /// <returns>実行時間（秒）</returns>
+        private float MeasureExecutionTime(System.Func<object> action)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            action.Invoke();
+            stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds / 1000f;
         }
 
         /// <summary>

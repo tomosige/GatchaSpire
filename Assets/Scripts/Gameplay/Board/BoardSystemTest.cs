@@ -143,6 +143,8 @@ namespace GatchaSpire.Gameplay.Board
         {
             LogDebug("ボード初期化テスト開始");
 
+            InitializeTestComponents();
+
             // 初期状態の確認
             AssertTest(boardManager.BoardWidth == 7, "ボード幅が7であること");
             AssertTest(boardManager.BoardHeight == 8, "ボード高さが8であること");

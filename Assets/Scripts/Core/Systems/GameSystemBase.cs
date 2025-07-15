@@ -63,9 +63,11 @@ namespace GatchaSpire.Core.Systems
             {
                 OnSystemInitialize();
                 isInitialized = true;
-                
+
                 if (enableDebugLogs)
+                {
                     Debug.Log($"[{SystemName}] システムを初期化しました");
+                }
             }
             catch (System.Exception e)
             {
