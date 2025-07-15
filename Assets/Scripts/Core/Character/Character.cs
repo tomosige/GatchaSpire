@@ -27,7 +27,8 @@ namespace GatchaSpire.Core.Character
 
         [Header("強化状態")]
         [SerializeField] private Dictionary<StatType, int> permanentBoosts = new Dictionary<StatType, int>();
-        [SerializeField] private Dictionary<StatType, int> temporaryBoosts = new Dictionary<StatType, int>();
+        [SerializeField] private Dictionary<StatType, int> temporaryBoosts = new Dictionary<StatType, int>(); // 旧式（互換性のため残存）
+        [SerializeField] private List<TemporaryEffect> temporaryEffects = new List<TemporaryEffect>(); // 新式の個別効果管理
         [SerializeField] private List<string> unlockedAbilities = new List<string>();
 
         [Header("スキルシステム")]
@@ -46,7 +47,8 @@ namespace GatchaSpire.Core.Character
         public int MaxHP => currentStats.GetFinalStat(StatType.HP);
         public int MaxMP => currentStats.GetFinalStat(StatType.MP);
         public Dictionary<StatType, int> PermanentBoosts => new Dictionary<StatType, int>(permanentBoosts);
-        public Dictionary<StatType, int> TemporaryBoosts => new Dictionary<StatType, int>(temporaryBoosts);
+        public Dictionary<StatType, int> TemporaryBoosts => new Dictionary<StatType, int>(temporaryBoosts); // 旧式（互換性のため）
+        public List<TemporaryEffect> TemporaryEffects => new List<TemporaryEffect>(temporaryEffects); // 新式の個別効果
         public List<string> UnlockedAbilities => new List<string>(unlockedAbilities);
 
         // スキルシステムプロパティ
@@ -61,6 +63,7 @@ namespace GatchaSpire.Core.Character
         public bool IsAlive => currentHP > 0;
         public float HPPercentage => MaxHP > 0 ? (float)currentHP / MaxHP : 0f;
         public float MPPercentage => MaxMP > 0 ? (float)currentMP / MaxMP : 0f;
+        public bool IsDead => currentHP <= 0;
 
         /// <summary>
         /// デフォルトコンストラクタ（シリアライゼーション用）
@@ -71,6 +74,7 @@ namespace GatchaSpire.Core.Character
             acquiredDate = DateTime.Now;
             permanentBoosts = new Dictionary<StatType, int>();
             temporaryBoosts = new Dictionary<StatType, int>();
+            temporaryEffects = new List<TemporaryEffect>();
             unlockedAbilities = new List<string>();
             
             // スキルシステム初期化
@@ -216,23 +220,118 @@ namespace GatchaSpire.Core.Character
         public void AddTemporaryBoost(StatType statType, int boost)
         {
             if (boost == 0)
+            {
                 return;
-
+            }
             if (temporaryBoosts.ContainsKey(statType))
+            {
                 temporaryBoosts[statType] += boost;
+            }
             else
+            {
                 temporaryBoosts[statType] = boost;
+            }
 
             RefreshStats();
         }
 
         /// <summary>
-        /// 一時的な強化をクリア
+        /// 一時的な強化をクリア（旧式）
         /// </summary>
         public void ClearTemporaryBoosts()
         {
             temporaryBoosts.Clear();
             RefreshStats();
+        }
+
+        /// <summary>
+        /// 一時的な効果を追加（新式・ID管理）
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <param name="statType">対象ステータス</param>
+        /// <param name="value">修正値</param>
+        public void AddTemporaryEffect(string effectId, StatType statType, int value)
+        {
+            if (string.IsNullOrEmpty(effectId) || value == 0)
+            {
+                return;
+            }
+
+            // 同じIDの効果が既に存在する場合は除去
+            RemoveTemporaryEffect(effectId);
+
+            // 新しい効果を追加
+            var effect = new TemporaryEffect(effectId, statType, value);
+            temporaryEffects.Add(effect);
+
+            RefreshStats();
+            Debug.Log($"[Character] {characterData.CharacterName}に一時的効果を追加: {effect}");
+        }
+
+        /// <summary>
+        /// 指定IDの一時的効果を除去
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <returns>除去された効果の数</returns>
+        public int RemoveTemporaryEffect(string effectId)
+        {
+            if (string.IsNullOrEmpty(effectId))
+            {
+                return 0;
+            }
+
+            int removedCount = temporaryEffects.RemoveAll(effect => effect.HasSameId(effectId));
+            
+            if (removedCount > 0)
+            {
+                RefreshStats();
+                Debug.Log($"[Character] {characterData.CharacterName}から一時的効果を除去: {effectId} ({removedCount}個)");
+            }
+
+            return removedCount;
+        }
+
+        /// <summary>
+        /// 全ての一時的効果をクリア（新式）
+        /// </summary>
+        public void ClearAllTemporaryEffects()
+        {
+            int count = temporaryEffects.Count;
+            temporaryEffects.Clear();
+            
+            if (count > 0)
+            {
+                RefreshStats();
+                Debug.Log($"[Character] {characterData.CharacterName}の全一時的効果をクリア ({count}個)");
+            }
+        }
+
+        /// <summary>
+        /// 指定ステータスタイプの一時的効果の合計値を取得
+        /// </summary>
+        /// <param name="statType">ステータス種類</param>
+        /// <returns>合計修正値</returns>
+        public int GetTemporaryEffectTotal(StatType statType)
+        {
+            int total = 0;
+            foreach (var effect in temporaryEffects)
+            {
+                if (effect.AffectsStat(statType))
+                {
+                    total += effect.Value;
+                }
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// 指定IDの効果が存在するかチェック
+        /// </summary>
+        /// <param name="effectId">効果識別子</param>
+        /// <returns>存在する場合true</returns>
+        public bool HasTemporaryEffect(string effectId)
+        {
+            return temporaryEffects.Exists(effect => effect.HasSameId(effectId));
         }
 
         /// <summary>
@@ -365,10 +464,19 @@ namespace GatchaSpire.Core.Character
             // 永続強化を適用
             ApplyPermanentBoosts();
             
-            // 一時的な強化を適用
+            // 一時的な強化を適用（旧式）
             foreach (var boost in temporaryBoosts)
             {
                 currentStats.AddModifier(boost.Key, boost.Value);
+            }
+            
+            // 一時的な効果を適用（新式）
+            foreach (var effect in temporaryEffects)
+            {
+                if (effect.IsValid())
+                {
+                    currentStats.AddModifier(effect.StatType, effect.Value);
+                }
             }
 
             // HP/MPが最大値を超えないように調整
@@ -396,6 +504,25 @@ namespace GatchaSpire.Core.Character
             {
                 info += "\n=== 永続強化 ===\n";
                 foreach (var boost in permanentBoosts)
+                {
+                    info += $"{boost.Key}: +{boost.Value}\n";
+                }
+            }
+
+            if (temporaryEffects.Count > 0)
+            {
+                info += "\n=== 一時的効果 ===\n";
+                foreach (var effect in temporaryEffects)
+                {
+                    info += $"- {effect}\n";
+                }
+            }
+            
+            // 旧式の一時的強化も表示（互換性のため）
+            if (temporaryBoosts.Count > 0)
+            {
+                info += "\n=== 一時的強化（旧式） ===\n";
+                foreach (var boost in temporaryBoosts)
                 {
                     info += $"{boost.Key}: +{boost.Value}\n";
                 }

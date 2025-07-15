@@ -57,6 +57,11 @@ namespace GatchaSpire.Gameplay.Battle
         // スキル・シナジーシステム（将来実装）
         private ISkillSystem skillSystem;
         private ISynergySystem synergySystem;
+        
+        // シナジーイベントリスナー
+        private Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyHPConditionEffect>> hpConditionListeners = new Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyHPConditionEffect>>();
+        private Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyDeathTriggerEffect>> deathListeners = new Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyDeathTriggerEffect>>();
+        private Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyAttackTriggerEffect>> attackListeners = new Dictionary<Character, List<GatchaSpire.Gameplay.Synergy.SynergyAttackTriggerEffect>>();
 
         protected override string SystemName => "BattleManager";
 
@@ -795,6 +800,149 @@ namespace GatchaSpire.Gameplay.Battle
             Debug.Log(info);
         }
 
+        #region シナジーイベントリスナー管理
+        
+        /// <summary>
+        /// HP条件チェックリスナーを登録
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">HP条件効果</param>
+        public void RegisterHPConditionCheck(Character character, GatchaSpire.Gameplay.Synergy.SynergyHPConditionEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (!hpConditionListeners.ContainsKey(character))
+            {
+                hpConditionListeners[character] = new List<GatchaSpire.Gameplay.Synergy.SynergyHPConditionEffect>();
+            }
+            
+            if (!hpConditionListeners[character].Contains(effect))
+            {
+                hpConditionListeners[character].Add(effect);
+            }
+        }
+        
+        /// <summary>
+        /// HP条件チェックリスナーを解除
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">HP条件効果</param>
+        public void UnregisterHPConditionCheck(Character character, GatchaSpire.Gameplay.Synergy.SynergyHPConditionEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (hpConditionListeners.ContainsKey(character))
+            {
+                hpConditionListeners[character].Remove(effect);
+                if (hpConditionListeners[character].Count == 0)
+                {
+                    hpConditionListeners.Remove(character);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 死亡イベントリスナーを登録
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">死亡時効果</param>
+        public void RegisterDeathListener(Character character, GatchaSpire.Gameplay.Synergy.SynergyDeathTriggerEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (!deathListeners.ContainsKey(character))
+            {
+                deathListeners[character] = new List<GatchaSpire.Gameplay.Synergy.SynergyDeathTriggerEffect>();
+            }
+            
+            if (!deathListeners[character].Contains(effect))
+            {
+                deathListeners[character].Add(effect);
+            }
+        }
+        
+        /// <summary>
+        /// 死亡イベントリスナーを解除
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">死亡時効果</param>
+        public void UnregisterDeathListener(Character character, GatchaSpire.Gameplay.Synergy.SynergyDeathTriggerEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (deathListeners.ContainsKey(character))
+            {
+                deathListeners[character].Remove(effect);
+                if (deathListeners[character].Count == 0)
+                {
+                    deathListeners.Remove(character);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 攻撃イベントリスナーを登録
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">攻撃時効果</param>
+        public void RegisterAttackListener(Character character, GatchaSpire.Gameplay.Synergy.SynergyAttackTriggerEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (!attackListeners.ContainsKey(character))
+            {
+                attackListeners[character] = new List<GatchaSpire.Gameplay.Synergy.SynergyAttackTriggerEffect>();
+            }
+            
+            if (!attackListeners[character].Contains(effect))
+            {
+                attackListeners[character].Add(effect);
+            }
+        }
+        
+        /// <summary>
+        /// 攻撃イベントリスナーを解除
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <param name="effect">攻撃時効果</param>
+        public void UnregisterAttackListener(Character character, GatchaSpire.Gameplay.Synergy.SynergyAttackTriggerEffect effect)
+        {
+            if (character == null || effect == null) return;
+            
+            if (attackListeners.ContainsKey(character))
+            {
+                attackListeners[character].Remove(effect);
+                if (attackListeners[character].Count == 0)
+                {
+                    attackListeners.Remove(character);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// プレイヤーキャラクターリストを取得
+        /// </summary>
+        /// <returns>プレイヤーキャラクターリスト</returns>
+        public List<Character> GetPlayerCharacters()
+        {
+            return playerCombatCharacters.Where(c => c.IsAlive).Select(c => c.BaseCharacter).ToList();
+        }
+        
+        /// <summary>
+        /// キャラクターの位置を取得
+        /// </summary>
+        /// <param name="character">対象キャラクター</param>
+        /// <returns>キャラクターの位置</returns>
+        public Vector2Int GetCharacterPosition(Character character)
+        {
+            var combatCharacter = playerCombatCharacters.Concat(enemyCombatCharacters)
+                .FirstOrDefault(c => c.BaseCharacter == character);
+            
+            return combatCharacter?.BoardPosition ?? Vector2Int.zero;
+        }
+        
+        #endregion
+        
         protected override void OnSystemShutdown()
         {
             // イベント登録解除
@@ -803,6 +951,11 @@ namespace GatchaSpire.Gameplay.Battle
                 boardManager.OnCharacterPlaced -= OnBoardCharacterPlaced;
                 boardManager.OnCharacterRemoved -= OnBoardCharacterRemoved;
             }
+            
+            // シナジーリスナーをクリア
+            hpConditionListeners.Clear();
+            deathListeners.Clear();
+            attackListeners.Clear();
         }
 
         protected override void OnSystemReset()

@@ -94,7 +94,7 @@
 - **戦略性強化**: パーティ構築の戦略的選択肢を拡大
 
 **詳細仕様**：
-- **シナジーシステム詳細仕様**: [`.tmp/design/new_design_synergy_system_split.md`](design/new_design_synergy_system_split.md)
+- **シナジーシステム詳細仕様**: [`.tmp/design/new_design_synergy_system_split.md`](design/detailed_synergy_system_specification.md)
 - **データ構造・計算式**: 上記詳細仕様書の「SynergyData」セクションを参照
 
 **特徴**：
