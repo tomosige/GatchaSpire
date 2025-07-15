@@ -141,8 +141,8 @@ namespace GatchaSpire.Gameplay.Synergy
             // Phase 4: 複数シナジー同時適用テスト
             yield return StartCoroutine(TestMultipleSynergies());
             
-            // Phase 5: シナジー変更・更新テスト（未実装のためコメントアウト）
-            // yield return StartCoroutine(TestSynergyUpdates());
+            // Phase 5: シナジー変更・更新テスト
+            yield return StartCoroutine(TestSynergyUpdates());
             
             // Phase 6: エラーケース・境界値テスト（未実装のためコメントアウト）
             // yield return StartCoroutine(TestSynergyErrorHandling());
@@ -583,20 +583,232 @@ namespace GatchaSpire.Gameplay.Synergy
         {
             LogDebug("シナジー変更・更新テスト開始");
 
-            // シナジー体数変更時の更新
-            AssertTest(false, "TestRaceA 2体→4体に変更時に効果が更新されること");
-            AssertTest(false, "TestRaceA 4体→2体に変更時に効果が更新されること");
-            AssertTest(false, "TestRaceA 2体→1体に変更時にシナジーが無効化されること");
+            // シナジー体数変更時の更新テスト
+            yield return StartCoroutine(TestSynergyCountChanges());
             
-            // シナジー追加・削除時の更新
-            AssertTest(false, "新しいシナジーが追加された時に即座に適用されること");
-            AssertTest(false, "既存シナジーが削除された時に即座に無効化されること");
+            // シナジー追加・削除時の更新テスト
+            yield return StartCoroutine(TestSynergyAddRemove());
             
-            // リアルタイム更新
-            AssertTest(false, "戦闘中のキャラクター変更時にシナジーが即座に更新されること");
-            AssertTest(false, "シナジー更新時に発動中の効果が適切に処理されること");
+            // リアルタイム更新テスト
+            yield return StartCoroutine(TestRealTimeUpdates());
 
-            LogTestResult("シナジー変更・更新テスト完了");
+            LogDebug("シナジー変更・更新テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// シナジー体数変更テスト
+        /// </summary>
+        private IEnumerator TestSynergyCountChanges()
+        {
+            LogDebug("シナジー体数変更テスト開始");
+            
+            var synergyData = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyData);
+            
+            // 初期状態：TestRaceA 2体でシナジー発動
+            var testCharacters = new List<Character>();
+            testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+            
+            // 2体時のシナジー発動確認
+            var results = calculator.CalculateSynergies(testCharacters);
+            var raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+            
+            bool initialSynergyActive = raceAResult != null && raceAResult.isActive;
+            AssertTest(initialSynergyActive, "TestRaceA 2体でシナジーが発動すること");
+            
+            if (initialSynergyActive)
+            {
+                var originalAttack = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                ApplySynergyEffects(calculator, testCharacters);
+                var attackAfter2Units = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                
+                LogDebug($"2体時の攻撃力: {originalAttack} → {attackAfter2Units}");
+                
+                // 2体→4体に変更
+                testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                // 効果をリセット
+                foreach (var character in testCharacters)
+                {
+                    character.ClearAllTemporaryEffects();
+                }
+                
+                // 4体時のシナジー発動確認
+                results = calculator.CalculateSynergies(testCharacters);
+                raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                bool synergyActive4Units = raceAResult != null && raceAResult.isActive;
+                AssertTest(synergyActive4Units, "TestRaceA 4体でシナジーが発動すること");
+                
+                if (synergyActive4Units)
+                {
+                    var originalAttack4 = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                    ApplySynergyEffects(calculator, testCharacters);
+                    var attackAfter4Units = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                    
+                    LogDebug($"4体時の攻撃力: {originalAttack4} → {attackAfter4Units}");
+                    
+                    // 4体時は攻撃力+100であることを確認
+                    AssertTest(attackAfter4Units == originalAttack4 + 100, "TestRaceA 2体→4体に変更時に効果が更新されること");
+                }
+                
+                // 4体→2体に変更
+                testCharacters.RemoveRange(2, 2);
+                
+                // 効果をリセット
+                foreach (var character in testCharacters)
+                {
+                    character.ClearAllTemporaryEffects();
+                }
+                
+                // 2体時のシナジー発動確認
+                results = calculator.CalculateSynergies(testCharacters);
+                raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                if (raceAResult != null && raceAResult.isActive)
+                {
+                    var originalAttack2 = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                    ApplySynergyEffects(calculator, testCharacters);
+                    var attackAfter2UnitsAgain = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                    
+                    LogDebug($"2体に戻した時の攻撃力: {originalAttack2} → {attackAfter2UnitsAgain}");
+                    
+                    // 2体時は攻撃力+50であることを確認
+                    AssertTest(attackAfter2UnitsAgain == originalAttack2 + 50, "TestRaceA 4体→2体に変更時に効果が更新されること");
+                }
+                
+                // 2体→1体に変更
+                testCharacters.RemoveAt(1);
+                
+                // 1体時のシナジー発動確認
+                results = calculator.CalculateSynergies(testCharacters);
+                raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                bool synergyInactive1Unit = raceAResult == null || !raceAResult.isActive;
+                AssertTest(synergyInactive1Unit, "TestRaceA 2体→1体に変更時にシナジーが無効化されること");
+            }
+            
+            LogDebug("シナジー体数変更テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// シナジー追加・削除テスト
+        /// </summary>
+        private IEnumerator TestSynergyAddRemove()
+        {
+            LogDebug("シナジー追加・削除テスト開始");
+            
+            // 初期状態：TestRaceAシナジーのみ
+            var synergyDataList = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyDataList);
+            
+            var testCharacters = new List<Character>();
+            testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+            testCharacters.AddRange(CreateTestCharactersWithName("TestRaceB", 2));
+            
+            // 初期状態：TestRaceAのみ発動
+            var results = calculator.CalculateSynergies(testCharacters);
+            var raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+            var raceBResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testraceb");
+            
+            bool raceAActive = raceAResult != null && raceAResult.isActive;
+            bool raceBActive = raceBResult != null && raceBResult.isActive;
+            
+            AssertTest(raceAActive, "初期状態でTestRaceAシナジーが発動すること");
+            AssertTest(!raceBActive, "初期状態でTestRaceBシナジーが発動しないこと");
+            
+            // 新しいシナジーを追加
+            synergyDataList.Add(CreateTestHPConditionSynergyData());
+            calculator.SetSynergies(synergyDataList);
+            
+            // 追加後のシナジー発動確認
+            results = calculator.CalculateSynergies(testCharacters);
+            raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+            raceBResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testraceb");
+            
+            raceAActive = raceAResult != null && raceAResult.isActive;
+            raceBActive = raceBResult != null && raceBResult.isActive;
+            
+            AssertTest(raceAActive, "シナジー追加後もTestRaceAシナジーが発動すること");
+            AssertTest(raceBActive, "新しいシナジーが追加された時に即座に適用されること");
+            
+            // シナジーを削除
+            synergyDataList.RemoveAt(1); // TestRaceBシナジーを削除
+            calculator.SetSynergies(synergyDataList);
+            
+            // 削除後のシナジー発動確認
+            results = calculator.CalculateSynergies(testCharacters);
+            raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+            raceBResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testraceb");
+            
+            raceAActive = raceAResult != null && raceAResult.isActive;
+            raceBActive = raceBResult != null && raceBResult.isActive;
+            
+            AssertTest(raceAActive, "シナジー削除後もTestRaceAシナジーが発動すること");
+            AssertTest(!raceBActive, "既存シナジーが削除された時に即座に無効化されること");
+            
+            LogDebug("シナジー追加・削除テスト完了");
+            yield return new WaitForSeconds(0.1f);
+        }
+        
+        /// <summary>
+        /// リアルタイム更新テスト
+        /// </summary>
+        private IEnumerator TestRealTimeUpdates()
+        {
+            LogDebug("リアルタイム更新テスト開始");
+            
+            var synergyDataList = new List<SynergyData> { CreateTestSynergyDataWithEffects() };
+            var calculator = new SynergyCalculator(synergyDataList);
+            
+            var testCharacters = new List<Character>();
+            testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+            
+            // 初期状態のシナジー効果適用
+            var results = calculator.CalculateSynergies(testCharacters);
+            var raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+            
+            if (raceAResult != null && raceAResult.isActive)
+            {
+                ApplySynergyEffects(calculator, testCharacters);
+                
+                var originalAttack = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                LogDebug($"初期攻撃力: {originalAttack}");
+                
+                // 戦闘中のキャラクター変更をシミュレート
+                testCharacters.AddRange(CreateTestCharactersWithName("TestRaceA", 2));
+                
+                // 効果をリセット（戦闘システムでは動的に更新される）
+                foreach (var character in testCharacters)
+                {
+                    character.ClearAllTemporaryEffects();
+                }
+                
+                // 更新後のシナジー効果適用
+                results = calculator.CalculateSynergies(testCharacters);
+                raceAResult = results.FirstOrDefault(r => r.synergyData.SynergyId == "testracea");
+                
+                if (raceAResult != null && raceAResult.isActive)
+                {
+                    ApplySynergyEffects(calculator, testCharacters);
+                    
+                    var updatedAttack = testCharacters[0].CurrentStats.GetFinalStat(StatType.Attack);
+                    LogDebug($"更新後攻撃力: {updatedAttack}");
+                    
+                    // 4体時は攻撃力+100であることを確認
+                    AssertTest(updatedAttack > originalAttack, "戦闘中のキャラクター変更時にシナジーが即座に更新されること");
+                }
+                
+                // シナジー更新時の発動中効果処理テスト
+                var tempEffects = testCharacters[0].TemporaryEffects;
+                bool hasActiveEffects = tempEffects.Any(e => e.StatType == StatType.Attack);
+                
+                AssertTest(hasActiveEffects, "シナジー更新時に発動中の効果が適切に処理されること");
+            }
+            
+            LogDebug("リアルタイム更新テスト完了");
             yield return new WaitForSeconds(0.1f);
         }
 
